@@ -588,8 +588,15 @@ const Home = () => {
       <li>• <span className="font-semibold">Dashboard Analytics:</span> Visualize productivity trends.</li>
       <li>• <span className="font-semibold">Personalization:</span> Adjust session lengths and notifications.</li>
     </ul>
+<p className="text-lg leading-relaxed mt-12 max-w-3xl mx-auto">
+  ⚠️ <span className="font-semibold">Ongoing Project Notice:</span> Reflective Pomodoro is an ongoing project run by me, not a big corporation. 
+  If you encounter any bugs or issues, please don’t be frustrated—simply send an email to 
+  <span className="font-semibold text-blue-700"> reflectivepomodoro.supp@gmail.com </span>. 
+  Your feedback helps me improve the tool for everyone.
+</p>
   </div>
 </section>
+
 
 
       {/* Reflection Modal */}
