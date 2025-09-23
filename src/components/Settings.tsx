@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -22,26 +22,26 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Moon, Sun, Volume2, RotateCcw, Check } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
+import { useAuth } from "../contexts/AuthContext";
 
 interface SettingsProps {
-  isDarkMode?: boolean;
-  onToggleDarkMode?: () => void;
-  onClose?: () => void; // Add this prop to handle modal closing
+  onClose?: () => void;
 }
 
-const Settings = ({ isDarkMode, onToggleDarkMode, onClose }: SettingsProps) => {
+const Settings = ({ onClose }: SettingsProps) => {
+  const { user } = useAuth();
   const { settings, updateSettings, resetSettings } = useSettings();
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
   const handleSave = () => {
-    // Show confirmation
+    // Settings are automatically saved via the context's useEffect
+    // We just need to show confirmation and close the modal
+    
     setShowSaveConfirmation(true);
     
-    // Hide confirmation after 1.5 seconds and close modal
     setTimeout(() => {
       setShowSaveConfirmation(false);
       if (onClose) {
-        // Add a small delay for smooth transition
         setTimeout(() => onClose(), 100);
       }
     }, 1500);
@@ -49,19 +49,6 @@ const Settings = ({ isDarkMode, onToggleDarkMode, onClose }: SettingsProps) => {
 
   const handleReset = () => {
     resetSettings();
-    // Optional: Show a brief confirmation for reset
-  };
-
-  const defaultSettings = {
-    workDuration: 25,
-    shortBreakDuration: 5,
-    longBreakDuration: 15,
-    sessionsBeforeLongBreak: 4,
-    autoStartBreaks: false,
-    autoStartPomodoros: false,
-    notificationSound: "bell",
-    volume: 80,
-    darkMode: false
   };
 
   return (
@@ -71,13 +58,17 @@ const Settings = ({ isDarkMode, onToggleDarkMode, onClose }: SettingsProps) => {
           <div className="flex justify-between items-center">
             <div>
               <CardTitle>Settings</CardTitle>
-              <CardDescription>Customize your Pomodoro experience</CardDescription>
+              <CardDescription>
+                {user 
+                  ? `Customize your Pomodoro experience (${user.email})`
+                  : "Customize your Pomodoro experience - Sign in to save across devices"
+                }
+              </CardDescription>
             </div>
             <Button 
               variant="outline" 
               onClick={handleReset} 
               size="sm"
-              disabled={JSON.stringify(settings) === JSON.stringify(defaultSettings)}
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               Reset
@@ -254,11 +245,7 @@ const Settings = ({ isDarkMode, onToggleDarkMode, onClose }: SettingsProps) => {
           </Tabs>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button 
-            variant="outline" 
-            onClick={handleReset}
-            disabled={JSON.stringify(settings) === JSON.stringify(defaultSettings)}
-          >
+          <Button variant="outline" onClick={handleReset}>
             Reset to Defaults
           </Button>
           <div className="relative">
