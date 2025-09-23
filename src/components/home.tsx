@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Settings as SettingsIcon, BarChart3, LogOut, Lock, Shield, FileText, Mail } from "lucide-react";
+import { Settings as SettingsIcon, BarChart3, LogOut, Lock, Shield, FileText, Mail, Heart } from "lucide-react";
 import Timer from "./Timer";
 import Dashboard from "./Dashboard";
 import Settings from "./Settings";
@@ -19,7 +19,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-type ModalType = "dashboard" | "settings" | "privacy" | "terms" | "contact" | "loginPrompt" | "auth" | "logoutConfirm" | null;
+type ModalType = "dashboard" | "settings" | "privacy" | "terms" | "contact" | "loginPrompt" | "auth" | "logoutConfirm" | "donate" | null;
 
 const Home = () => {
   const [activeTab, setActiveTab] = useState("timer");
@@ -176,6 +176,32 @@ const Home = () => {
           </>
         );
       
+      case "donate":
+        return (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                <Heart className="h-5 w-5 text-pink-500" />
+                Support Reflective Pomodoro
+              </DialogTitle>
+              <DialogDescription className="text-base leading-relaxed">
+                Hi! 👋 Reflective Pomodoro is a personal Pomodoro timer I built to help people focus and get things done. I run this project on my own—it's not backed by a big company—and your support would mean the world to me. Every donation, big or small, will not only help keep the site alive but also make it possible for me to keep improving it. Thank you for helping me continue this project—I truly appreciate it!
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex gap-2 pt-4">
+              <Button variant="outline" onClick={() => setOpenModal(null)} className="flex-1">
+                Maybe Later
+              </Button>
+              <Button 
+                onClick={() => window.open("https://ko-fi.com/reflectivepomodoro", "_blank")}
+                className="flex-1 bg-pink-500 hover:bg-pink-600 text-white"
+              >
+                Donate Now
+              </Button>
+            </DialogFooter>
+          </>
+        );
+      
       case "privacy":
         return (
           <>
@@ -293,8 +319,8 @@ const Home = () => {
                 <h3 className="font-semibold text-lg mb-2">10. Contact Us</h3>
                 <p>
                   If you have any questions about this Privacy Policy, you can contact us
-                  at: <a href="mailto:support@reflectivepomodoro.app" className="underline">
-                    support@reflectivepomodoro.app
+                  at: <a href="mailto:reflectivepomodoro.supp@gmail.com" className="underline">
+                    reflectivepomodoro.supp@gmail.com
                   </a>
                 </p>
               </section>
@@ -402,8 +428,8 @@ const Home = () => {
                 <h3 className="font-semibold text-lg mb-2">9. Contact</h3>
                 <p>
                   Questions or concerns about these Terms may be sent to:{" "}
-                  <a href="mailto:support@reflectivepomodoro.app" className="underline">
-                    support@reflectivepomodoro.app
+                  <a href="mailto:reflectivepomodoro.supp@gmail.com" className="underline">
+                    reflectivepomodoro.supp@gmail.com
                   </a>
                 </p>
               </section>
@@ -423,7 +449,7 @@ const Home = () => {
             <div className="space-y-4 text-sm leading-relaxed">
               <p>If you have any questions, feedback, or issues, feel free to contact us:</p>
               <ul className="list-disc list-inside ml-4 space-y-1">
-                <li>Email: <a href="mailto:support@reflectivepomodoro.app" className="underline">support@reflectivepomodoro.app</a></li>
+                <li>Email: <a href="mailto:reflectivepomodoro.supp@gmail.com" className="underline">reflectivepomodoro.supp@gmail.com</a></li>
                 <li>Subject: Support or General Inquiry</li>
                 <li>Response Time: Typically within 24–48 hours</li>
               </ul>
@@ -461,6 +487,16 @@ const Home = () => {
         <div className="flex items-center gap-2">
           {user ? (
             <>
+              {/* Donate Button - Added before Dashboard */}
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => setOpenModal("donate")} 
+                title="Support the project"
+                className="text-pink-500 border-pink-300 hover:bg-pink-50 hover:text-pink-600"
+              >
+                <Heart className="h-5 w-5" />
+              </Button>
               <Button 
                 variant="outline" 
                 size="icon" 
@@ -574,7 +610,7 @@ const Home = () => {
         open={openModal !== null} 
         onOpenChange={handleModalOpenChange}
       >
-        <DialogContent className={`w-full max-h-[90vh] overflow-auto ${modalBg} ${openModal === "logoutConfirm" ? "max-w-md" : ""}`}>
+        <DialogContent className={`w-full max-h-[90vh] overflow-auto ${modalBg} ${openModal === "logoutConfirm" || openModal === "donate" ? "max-w-md" : ""}`}>
           {renderModalContent()}
         </DialogContent>
       </Dialog>
