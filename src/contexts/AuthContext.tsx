@@ -1,18 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup,
-  User as FirebaseUser,
-} from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase"; // adjust path
 
 interface User {
-  uid: string; // use Firebase UID
+  uid: string;
   name: string;
   email: string;
   createdAt?: Date;
@@ -43,57 +32,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Check for existing session on mount
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setUser({
-              uid: firebaseUser.uid,
-              name: userData.name,
-              email: firebaseUser.email || "",
-              createdAt: userData.createdAt?.toDate(),
-            });
-          } else {
-            const newUser: User = {
-              uid: firebaseUser.uid,
-              name: firebaseUser.displayName || "User",
-              email: firebaseUser.email || "",
-              createdAt: new Date(),
-            };
-            await setDoc(doc(db, "users", firebaseUser.uid), {
-              name: newUser.name,
-              email: newUser.email,
-              createdAt: new Date(),
-            });
-            setUser(newUser);
-          }
-        } catch (error) {
-          console.error("Error getting user data:", error);
+    const checkExistingSession = () => {
+      try {
+        const savedUser = localStorage.getItem('pomodoro_user');
+        if (savedUser) {
+          const userData = JSON.parse(savedUser);
+          // Convert string date back to Date object
+          userData.createdAt = new Date(userData.createdAt);
+          setUser(userData);
         }
-      } else {
-        setUser(null);
+      } catch (error) {
+        console.error("Error loading user session:", error);
+        localStorage.removeItem('pomodoro_user');
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    checkExistingSession();
   }, []);
 
   const signup = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      await setDoc(doc(db, "users", firebaseUser.uid), {
+      // Basic validation
+      if (!email || !password || !name) {
+        throw new Error("All fields are required");
+      }
+
+      if (password.length < 6) {
+        throw new Error("Password should be at least 6 characters");
+      }
+
+      // Check if user already exists (in a real app, this would be an API call)
+      const existingUsers = JSON.parse(localStorage.getItem('pomodoro_users') || '{}');
+      if (existingUsers[email]) {
+        throw new Error("User already exists with this email");
+      }
+
+      // Create new user
+      const newUser: User = {
+        uid: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name,
         email,
         createdAt: new Date(),
-      });
+      };
+
+      // Save to localStorage (in a real app, this would be your backend)
+      existingUsers[email] = {
+        ...newUser,
+        password: btoa(password) // Simple encoding for demo (not secure for production)
+      };
+      localStorage.setItem('pomodoro_users', JSON.stringify(existingUsers));
+      localStorage.setItem('pomodoro_user', JSON.stringify(newUser));
+      
+      setUser(newUser);
     } catch (error: any) {
       throw new Error(error.message || "Signup failed");
     } finally {
@@ -104,7 +102,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Basic validation
+      if (!email || !password) {
+        throw new Error("Email and password are required");
+      }
+
+      // Check if user exists (in a real app, this would be an API call)
+      const existingUsers = JSON.parse(localStorage.getItem('pomodoro_users') || '{}');
+      const userData = existingUsers[email];
+
+      if (!userData) {
+        throw new Error("No user found with this email");
+      }
+
+      // Check password (in a real app, this would be handled by your backend)
+      if (btoa(password) !== userData.password) {
+        throw new Error("Invalid password");
+      }
+
+      // Create user object without password
+      const loggedInUser: User = {
+        uid: userData.uid,
+        name: userData.name,
+        email: userData.email,
+        createdAt: new Date(userData.createdAt),
+      };
+
+      localStorage.setItem('pomodoro_user', JSON.stringify(loggedInUser));
+      setUser(loggedInUser);
     } catch (error: any) {
       throw new Error(error.message || "Login failed");
     } finally {
@@ -115,23 +143,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithGoogle = async () => {
     setIsLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const firebaseUser = result.user;
+      // Simulate Google OAuth flow
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+      // Mock Google user data
+      const mockGoogleUser: User = {
+        uid: `google-user-${Date.now()}`,
+        name: "Google User",
+        email: "user@gmail.com",
+        createdAt: new Date(),
+      };
 
-      if (!userDoc.exists()) {
-        await setDoc(doc(db, "users", firebaseUser.uid), {
-          name: firebaseUser.displayName || "User",
-          email: firebaseUser.email || "",
-          createdAt: new Date(),
-        });
-      }
-      // State will be updated by onAuthStateChanged
+      // Save to localStorage (in a real app, this would be your backend)
+      localStorage.setItem('pomodoro_user', JSON.stringify(mockGoogleUser));
+      
+      setUser(mockGoogleUser);
     } catch (error: any) {
       console.error("Google sign-in failed:", error);
-      throw new Error(error.message || "Google sign-in failed");
+      throw new Error("Google sign-in failed");
     } finally {
       setIsLoading(false);
     }
@@ -139,14 +168,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      await signOut(auth);
+      setIsLoading(true);
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      localStorage.removeItem('pomodoro_user');
+      setUser(null);
     } catch (error: any) {
-      throw new Error(error.message || "Logout failed");
+      throw new Error("Logout failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, signup, logout, loginWithGoogle }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isLoading, 
+      login, 
+      signup, 
+      logout, 
+      loginWithGoogle 
+    }}>
       {children}
     </AuthContext.Provider>
   );

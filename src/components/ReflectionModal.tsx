@@ -11,14 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../firebase";
 
 interface ReflectionModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   sessionId: string | null;
-  onSubmit?: () => void;  
+  onSubmit?: (reflectionData: { learnings: string; sessionId: string | null }) => void;  
 }
 
 const ReflectionModal: React.FC<ReflectionModalProps> = ({
@@ -41,6 +39,13 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
     }
   }, [isOpen]);
 
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setLearnings("");
+    }
+  }, [isOpen]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Prevent dialog from closing when pressing Escape while typing
     if (e.key === 'Escape' && learnings.trim().length > 0) {
@@ -52,34 +57,34 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
     if (e.key === ' ' && e.target === textareaRef.current) {
       e.stopPropagation();
     }
+
+    // Ctrl+Enter to save
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      if (learnings.trim().length > 0 && !isSaving) {
+        handleSubmit(e);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user) return;
-
-    if (!sessionId) {
-      console.warn("Reflection submitted without sessionId");
-    }
+    if (!learnings.trim()) return;
 
     setIsSaving(true);
 
     try {
-      const reflectionsRef = collection(db, "users", user.uid, "reflections");
-
-      await addDoc(reflectionsRef, {
-        learnings: learnings.trim(),
-        sessionId: sessionId || null,
-        createdAt: serverTimestamp(),
-      });
+      // Call the onSubmit prop with the reflection data
+      if (onSubmit) {
+        await onSubmit({
+          learnings: learnings.trim(),
+          sessionId
+        });
+      }
 
       setLearnings("");
       onOpenChange(false);
-      
-      if (onSubmit) {
-        onSubmit();
-      }
     } catch (error) {
       console.error("Failed to save reflection:", error);
     } finally {

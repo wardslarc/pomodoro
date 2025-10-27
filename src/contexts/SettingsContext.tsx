@@ -1,6 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 import { useAuth } from './AuthContext';
 
 interface Settings {
@@ -40,53 +38,28 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { user } = useAuth();
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load settings when user changes
+  // Load settings when user changes or on mount
   useEffect(() => {
-    const loadSettings = async () => {
-      if (!user) {
-        // Load from localStorage for anonymous users
-        const saved = localStorage.getItem('pomodoro-settings-anonymous');
-        if (saved) {
-          try {
-            const parsedSettings = JSON.parse(saved);
-            setSettings({ ...defaultSettings, ...parsedSettings });
-          } catch (e) {
-            console.error('Error parsing localStorage settings:', e);
-            setSettings(defaultSettings);
-          }
-        }
-        setIsInitialized(true);
-        return;
-      }
-
+    const loadSettings = () => {
       try {
-        const userSettingsRef = doc(db, 'userSettings', user.uid);
-        const userSettingsDoc = await getDoc(userSettingsRef);
-        
-        if (userSettingsDoc.exists()) {
-          const userSettings = userSettingsDoc.data();
-          
+        let storageKey = 'pomodoro-settings-anonymous';
+        if (user) {
+          storageKey = `pomodoro-settings-${user.uid}`;
+        }
+
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const parsedSettings = JSON.parse(saved);
           // Merge with defaults to ensure all fields exist
-          const mergedSettings = { ...defaultSettings, ...userSettings };
+          const mergedSettings = { ...defaultSettings, ...parsedSettings };
           setSettings(mergedSettings);
         } else {
-          // Create initial settings document for new user
-          await setDoc(userSettingsRef, defaultSettings);
+          // Use default settings if nothing is saved
           setSettings(defaultSettings);
         }
       } catch (error) {
-        console.error('Error loading user settings from Firestore:', error);
-        // Fallback to localStorage
-        const saved = localStorage.getItem(`pomodoro-settings-${user.uid}`);
-        if (saved) {
-          try {
-            const parsedSettings = JSON.parse(saved);
-            setSettings({ ...defaultSettings, ...parsedSettings });
-          } catch (e) {
-            console.error('Error parsing localStorage settings:', e);
-            setSettings(defaultSettings);
-          }
-        }
+        console.error('Error loading settings from localStorage:', error);
+        setSettings(defaultSettings);
       } finally {
         setIsInitialized(true);
       }
@@ -95,36 +68,34 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     loadSettings();
   }, [user]);
 
-  // Save to appropriate storage whenever settings change
+  // Save to localStorage whenever settings change
   useEffect(() => {
     if (!isInitialized) return; // Don't save until we've finished initial loading
 
-    const saveSettings = async () => {
+    const saveSettings = () => {
       try {
+        let storageKey = 'pomodoro-settings-anonymous';
         if (user) {
-
-          await setDoc(doc(db, 'userSettings', user.uid), settings, { merge: true });
-          // Also save to localStorage as backup
-          localStorage.setItem(`pomodoro-settings-${user.uid}`, JSON.stringify(settings));
-        } else {
-          // Save to localStorage for anonymous users
-          localStorage.setItem('pomodoro-settings-anonymous', JSON.stringify(settings));
+          storageKey = `pomodoro-settings-${user.uid}`;
         }
- 
+        
+        localStorage.setItem(storageKey, JSON.stringify(settings));
       } catch (error) {
-        console.error('Error saving settings to Firestore:', error);
-        // Fallback to localStorage
-        if (user) {
-          localStorage.setItem(`pomodoro-settings-${user.uid}`, JSON.stringify(settings));
-        } else {
-          localStorage.setItem('pomodoro-settings-anonymous', JSON.stringify(settings));
-        }
-
+        console.error('Error saving settings to localStorage:', error);
       }
     };
 
     saveSettings();
   }, [settings, user, isInitialized]);
+
+  // Apply dark mode when settings change
+  useEffect(() => {
+    if (settings.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [settings.darkMode]);
 
   const updateSettings = (newSettings: Partial<Settings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));

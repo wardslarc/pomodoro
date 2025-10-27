@@ -13,32 +13,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Award, BarChart2, Clock, Target, ArrowLeft, Home } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { db } from "../firebase";
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  DocumentData,
-  QueryDocumentSnapshot,
-  Timestamp,
-} from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
 interface DashboardProps {}
 
 interface SessionData {
   id: string;
-  completedAt: Timestamp;
+  completedAt: Date;
   duration: number;
   sessionType: string;
-  createdAt?: Timestamp;
+  createdAt?: Date;
 }
 
 interface ReflectionData {
   id: string;
-  createdAt: Timestamp;
+  createdAt: Date;
   learnings: string;
   sessionId: string;
 }
@@ -55,135 +44,124 @@ const Dashboard: React.FC<DashboardProps> = () => {
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<SessionData[]>([]);
 
+  // Mock data for demonstration
+  const mockSessions: SessionData[] = [
+    {
+      id: "1",
+      completedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // yesterday
+      duration: 25,
+      sessionType: "work"
+    },
+    {
+      id: "2",
+      completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+      duration: 15,
+      sessionType: "break"
+    },
+    {
+      id: "3",
+      completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+      duration: 25,
+      sessionType: "work"
+    },
+  ];
+
+  const mockReflections: ReflectionData[] = [
+    {
+      id: "1",
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      learnings: "Focused really well during this session and completed my task ahead of schedule.",
+      sessionId: "1"
+    },
+    {
+      id: "2",
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      learnings: "The break helped me recharge and come back with fresh ideas.",
+      sessionId: "2"
+    }
+  ];
+
   useEffect(() => {
     if (!user) {
       setLoading(false);
       return;
     }
 
-    // ✅ Query the sessions subcollection
-    const sessionsRef = collection(db, "users", user.uid, "sessions");
-    const sessionsQuery = query(
-      sessionsRef,
-      orderBy("completedAt", "desc")
-    );
+    // Simulate loading delay
+    const timer = setTimeout(() => {
+      // Use mock data instead of Firebase
+      setSessions(mockSessions);
+      setRecentReflections(mockReflections);
 
-    // ✅ Query the reflections subcollection
-    const reflectionsRef = collection(db, "users", user.uid, "reflections");
-    const reflectionsQuery = query(
-      reflectionsRef,
-      orderBy("createdAt", "desc")
-    );
+      // Calculate stats from mock data
+      setCompletedPomodoros(mockSessions.length);
 
-    const unsubscribeSessions = onSnapshot(sessionsQuery, 
-      (snapshot) => {
-        const sessionsData: SessionData[] = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+      // Weekly stats calculation
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
 
-        setSessions(sessionsData);
+      const endOfWeek = new Date(now);
+      endOfWeek.setDate(now.getDate() + (6 - now.getDay()));
+      endOfWeek.setHours(23, 59, 59, 999);
 
-        if (sessionsData.length === 0) {
-          setLoading(false);
-          return;
+      const weeklyCounts = [0, 0, 0, 0, 0, 0, 0];
+      
+      mockSessions.forEach((session) => {
+        const sessionDate = session.completedAt;
+        
+        if (sessionDate >= startOfWeek && sessionDate <= endOfWeek) {
+          const dayOfWeek = sessionDate.getDay();
+          weeklyCounts[dayOfWeek] += 1;
         }
+      });
 
-        // ✅ Total completed pomodoros
-        setCompletedPomodoros(sessionsData.length);
+      // Reorder to start with Monday instead of Sunday
+      const reorderedWeekly = [...weeklyCounts.slice(1), weeklyCounts[0]];
+      setWeeklyPomodoros(reorderedWeekly);
 
-        // ✅ Weekly Pomodoros (current week)
-        const now = new Date();
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday start
-        startOfWeek.setHours(0, 0, 0, 0);
+      // Calendar data
+      const calendarMap: { [key: string]: number } = {};
+      mockSessions.forEach((session) => {
+        const dateKey = session.completedAt.toDateString();
+        calendarMap[dateKey] = (calendarMap[dateKey] || 0) + 1;
+      });
 
-        const endOfWeek = new Date(now);
-        endOfWeek.setDate(now.getDate() + (6 - now.getDay())); // Saturday end
-        endOfWeek.setHours(23, 59, 59, 999);
+      const calendarDataArray = Object.entries(calendarMap).map(([dateKey, count]) => ({
+        date: new Date(dateKey),
+        count
+      }));
 
-        const weeklyCounts = [0, 0, 0, 0, 0, 0, 0];
-        
-        sessionsData.forEach((session) => {
-          const sessionDate = session.completedAt?.toDate ? session.completedAt.toDate() : new Date(session.completedAt);
-          
-          if (sessionDate >= startOfWeek && sessionDate <= endOfWeek) {
-            const dayOfWeek = sessionDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-            weeklyCounts[dayOfWeek] += 1;
-          }
-        });
+      setCalendarData(calendarDataArray);
 
-        // Reorder to start with Monday (1) instead of Sunday (0)
-        const reorderedWeekly = [...weeklyCounts.slice(1), weeklyCounts[0]];
-        setWeeklyPomodoros(reorderedWeekly);
+      // Streak calculation
+      const uniqueDates = new Set();
+      mockSessions.forEach(session => {
+        uniqueDates.add(session.completedAt.toDateString());
+      });
 
-        // ✅ Calendar Data for heatmap
-        const calendarMap: { [key: string]: number } = {};
-        sessionsData.forEach((session) => {
-          const sessionDate = session.completedAt?.toDate ? session.completedAt.toDate() : new Date(session.completedAt);
-          const dateKey = sessionDate.toDateString();
-          calendarMap[dateKey] = (calendarMap[dateKey] || 0) + 1;
-        });
+      // Calculate streak
+      let streak = 0;
+      let currentDate = new Date();
+      currentDate.setHours(23, 59, 59, 999);
 
-        const calendarDataArray = Object.entries(calendarMap).map(([dateKey, count]) => ({
-          date: new Date(dateKey),
-          count
-        }));
-
-        setCalendarData(calendarDataArray);
-
-        // ✅ Streak calculation
-        const uniqueDates = new Set();
-        sessionsData.forEach(session => {
-          const sessionDate = session.completedAt?.toDate ? session.completedAt.toDate() : new Date(session.completedAt);
-          uniqueDates.add(sessionDate.toDateString());
-        });
-
-        // Calculate streak by checking consecutive days from today backwards
-        let streak = 0;
-        let currentDate = new Date();
-        currentDate.setHours(23, 59, 59, 999);
-
-        while (true) {
-          const dateString = currentDate.toDateString();
-          if (uniqueDates.has(dateString)) {
-            streak++;
-            currentDate.setDate(currentDate.getDate() - 1);
-            currentDate.setHours(23, 59, 59, 999);
-          } else {
-            break;
-          }
+      while (true) {
+        const dateString = currentDate.toDateString();
+        if (uniqueDates.has(dateString)) {
+          streak++;
+          currentDate.setDate(currentDate.getDate() - 1);
+          currentDate.setHours(23, 59, 59, 999);
+        } else {
+          break;
         }
-        
-        setStreakDays(streak);
-      },
-      (error) => {
-        console.error("Error fetching sessions:", error);
-        setLoading(false);
       }
-    );
+      
+      setStreakDays(streak);
+      setLoading(false);
+    }, 1000);
 
-    const unsubscribeReflections = onSnapshot(reflectionsQuery, 
-      (snapshot) => {
-        const reflectionsData: ReflectionData[] = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        // Get latest 3 reflections
-        setRecentReflections(reflectionsData.slice(0, 3));
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error fetching reflections:", error);
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      unsubscribeSessions();
-      unsubscribeReflections();
-    };
+    return () => clearTimeout(timer);
   }, [user]);
 
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -192,11 +170,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
   const getSessionForReflection = (sessionId: string) => {
     return sessions.find(session => session.id === sessionId);
   };
-
-  // Alternative: Go to timer page if that's where you want to go back to
-  // const handleGoBack = () => {
-  //   navigate("/timer"); // Navigate to timer page
-  // };
 
   if (loading) {
     return (
@@ -346,9 +319,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                             {session ? `${session.sessionType === 'work' ? 'Work' : 'Break'} Session` : 'Session'}
                           </span>
                           <span className="text-sm text-muted-foreground">
-                            {reflection.createdAt?.toDate 
-                              ? reflection.createdAt.toDate().toLocaleDateString()
-                              : new Date(reflection.createdAt).toLocaleDateString()}
+                            {reflection.createdAt.toLocaleDateString()}
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground">

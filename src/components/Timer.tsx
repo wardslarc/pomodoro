@@ -8,36 +8,38 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
-import { db } from "../firebase";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSettings } from "@/contexts/SettingsContext"; // Add this import
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-  getDocs,
-  query,
-  orderBy,
-} from "firebase/firestore";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface TimerProps {
-  onSessionComplete?: (sessionId: string) => void;
+  onSessionComplete?: (sessionData: {
+    sessionId: string;
+    sessionType: "work" | "break" | "longBreak";
+    duration: number;
+  }) => void;
 }
 
 interface SessionHistory {
   type: "work" | "break" | "longBreak";
   duration: number;
   completedAt: Date;
+  sessionId: string;
+}
+
+interface TimerState {
+  timeLeft: number;
+  isRunning: boolean;
+  sessionType: "work" | "break" | "longBreak";
+  completedSessions: number;
+  progress: number;
+  sessionHistory: SessionHistory[];
 }
 
 const Timer = ({
   onSessionComplete = () => {},
 }: TimerProps) => {
-  const { user } = useAuth();
-  const { settings } = useSettings(); // Get settings from context
+  const { settings } = useSettings();
   
   const [timeLeft, setTimeLeft] = useState(settings.workDuration * 60);
-  const [latestSessionId, setLatestSessionId] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [sessionType, setSessionType] = useState<"work" | "break" | "longBreak">("work");
   const [completedSessions, setCompletedSessions] = useState(0);
@@ -52,6 +54,37 @@ const Timer = ({
     sessionTypeRef.current = sessionType;
     completedSessionsRef.current = completedSessions;
   }, [sessionType, completedSessions]);
+
+  // Load timer state from localStorage on mount
+  useEffect(() => {
+    const loadTimerState = () => {
+      try {
+        const saved = localStorage.getItem("pomodoroTimer");
+        if (saved) {
+          const parsed: TimerState = JSON.parse(saved);
+          
+          // Convert completedAt strings back to Date objects
+          const historyWithDates = parsed.sessionHistory.map(session => ({
+            ...session,
+            completedAt: new Date(session.completedAt)
+          }));
+
+          setTimeLeft(parsed.timeLeft);
+          setIsRunning(false); // Always start paused
+          setSessionType(parsed.sessionType);
+          setCompletedSessions(parsed.completedSessions);
+          setProgress(parsed.progress);
+          setSessionHistory(historyWithDates);
+        }
+      } catch (error) {
+        console.error("Error loading timer state:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTimerState();
+  }, []);
 
   // Update timer when settings change
   useEffect(() => {
@@ -105,44 +138,30 @@ const Timer = ({
 
     const currentSessionType = sessionTypeRef.current;
     const currentCompletedSessions = completedSessionsRef.current;
-    let newSessionId: string | null = null;
+    
+    // Generate session ID
+    const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    if (user?.uid) {
-      try {
-        const sessionsRef = collection(db, "users", user.uid, "sessions");
-        const docRef = await addDoc(sessionsRef, {
-          sessionType: currentSessionType,
-          duration:
-            currentSessionType === "work"
-              ? settings.workDuration
-              : currentSessionType === "break"
-              ? settings.shortBreakDuration
-              : settings.longBreakDuration,
-          completedAt: serverTimestamp(),
-        });
+    // Create session data
+    const sessionData = {
+      sessionId: newSessionId,
+      sessionType: currentSessionType,
+      duration: currentSessionType === "work"
+        ? settings.workDuration
+        : currentSessionType === "break"
+        ? settings.shortBreakDuration
+        : settings.longBreakDuration,
+    };
 
-        newSessionId = docRef.id;
-        setLatestSessionId(newSessionId);
-      } catch (err) {
-        console.error("Failed to record session:", err);
-      }
-    } else {
-      newSessionId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      setLatestSessionId(newSessionId);
-    }
-
-    onSessionComplete(newSessionId || "unknown-session");
+    // Call the completion callback
+    onSessionComplete(sessionData);
 
     const newSession: SessionHistory = {
-      type: currentSessionType,
-      duration:
-        currentSessionType === "work"
-          ? settings.workDuration
-          : currentSessionType === "break"
-          ? settings.shortBreakDuration
-          : settings.longBreakDuration,
+      ...sessionData,
       completedAt: new Date(),
     };
+
+    // Update session history
     setSessionHistory(prev => [...prev, newSession].slice(-50));
 
     if (currentSessionType === "work") {
@@ -168,7 +187,7 @@ const Timer = ({
     } else {
       setIsRunning(false);
     }
-  }, [user, settings, onSessionComplete]);
+  }, [settings, onSessionComplete]);
 
   useEffect(() => {
     let interval: number | undefined;
@@ -194,8 +213,9 @@ const Timer = ({
     setProgress(((totalDuration - timeLeft) / totalDuration) * 100);
   }, [sessionType, getTotalDuration, timeLeft]);
 
+  // Save timer state to localStorage
   useEffect(() => {
-    const timerState = {
+    const timerState: TimerState = {
       timeLeft,
       isRunning,
       sessionType,
@@ -206,44 +226,14 @@ const Timer = ({
     localStorage.setItem("pomodoroTimer", JSON.stringify(timerState));
   }, [timeLeft, isRunning, sessionType, completedSessions, progress, sessionHistory]);
 
-  // Load sessions from Firestore on mount
+  // Request notification permission on mount
   useEffect(() => {
-    const loadSessions = async () => {
-      if (user?.uid) {
-        try {
-          const sessionsRef = collection(db, "users", user.uid, "sessions");
-          const q = query(sessionsRef, orderBy("completedAt", "desc"));
-          const querySnap = await getDocs(q);
-
-          const history: SessionHistory[] = [];
-          let workCount = 0;
-
-          querySnap.forEach(doc => {
-            const data = doc.data();
-            history.push({
-              type: data.sessionType,
-              duration: data.duration,
-              completedAt: data.completedAt?.toDate?.() || new Date(),
-            });
-            if (data.sessionType === "work") workCount++;
-          });
-
-          setSessionHistory(history);
-          setCompletedSessions(workCount);
-        } catch (err) {
-          console.error("Error loading session history:", err);
-        }
-      }
-      setIsLoading(false);
-    };
-
-    loadSessions();
-
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
-  }, [user]);
+  }, []);
 
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.code === "Space") {
@@ -263,11 +253,13 @@ const Timer = ({
   }, []);
 
   const toggleTimer = () => setIsRunning(!isRunning);
+  
   const resetTimer = () => {
     setIsRunning(false);
     setTimeLeft(getTotalDuration());
     setProgress(0);
   };
+  
   const skipTimer = () => handleTimerComplete();
 
   const getSessionLabel = () => {
