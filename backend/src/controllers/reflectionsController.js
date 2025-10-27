@@ -1,14 +1,20 @@
+const express = require('express');
 const Reflection = require('../models/Reflection');
 const Session = require('../models/Session');
+const auth = require('../middleware/auth');
+const { validateReflection } = require('../middleware/validation');
 
-exports.createReflection = async (req, res, next) => {
+const router = express.Router();
+
+// Create reflection
+router.post('/', auth, validateReflection, async (req, res) => {
   try {
-    const { sessionId, learnings, rating, tags } = req.body;
+    const { sessionId, learnings, createdAt } = req.body;
 
-    // Verify session exists and belongs to user
+    // Verify the session belongs to the user
     const session = await Session.findOne({
       _id: sessionId,
-      userId: req.user.id
+      userId: req.user._id
     });
 
     if (!session) {
@@ -18,61 +24,80 @@ exports.createReflection = async (req, res, next) => {
       });
     }
 
-    const reflection = await Reflection.create({
-      userId: req.user.id,
+    // Check if reflection already exists for this session
+    const existingReflection = await Reflection.findOne({ sessionId });
+    if (existingReflection) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reflection already exists for this session'
+      });
+    }
+
+    const reflection = new Reflection({
+      userId: req.user._id,
       sessionId,
       learnings,
-      rating,
-      tags
+      createdAt: createdAt ? new Date(createdAt) : new Date()
     });
+
+    await reflection.save();
 
     res.status(201).json({
       success: true,
-      message: 'Reflection created successfully',
       data: {
         reflection
-      }
+      },
+      message: 'Reflection saved successfully'
     });
   } catch (error) {
-    next(error);
+    console.error('Error creating reflection:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating reflection'
+    });
   }
-};
+});
 
-exports.getReflections = async (req, res, next) => {
+// Get reflections for user
+router.get('/', auth, async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
-
-    const reflections = await Reflection.find({ userId: req.user.id })
+    const { limit = 50, page = 1 } = req.query;
+    
+    const reflections = await Reflection.find({ userId: req.user._id })
       .populate('sessionId', 'sessionType duration completedAt')
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
 
-    const total = await Reflection.countDocuments({ userId: req.user.id });
+    const total = await Reflection.countDocuments({ userId: req.user._id });
 
     res.json({
       success: true,
       data: {
         reflections,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        total
+        total,
+        page: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit))
       }
     });
   } catch (error) {
-    next(error);
+    console.error('Error fetching reflections:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching reflections'
+    });
   }
-};
+});
 
-exports.updateReflection = async (req, res, next) => {
+// Get reflection by session ID
+router.get('/session/:sessionId', auth, async (req, res) => {
   try {
-    const { learnings, rating, tags } = req.body;
+    const { sessionId } = req.params;
 
-    const reflection = await Reflection.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user.id },
-      { learnings, rating, tags },
-      { new: true, runValidators: true }
-    ).populate('sessionId', 'sessionType duration completedAt');
+    const reflection = await Reflection.findOne({
+      sessionId,
+      userId: req.user._id
+    }).populate('sessionId', 'sessionType duration completedAt');
 
     if (!reflection) {
       return res.status(404).json({
@@ -83,21 +108,62 @@ exports.updateReflection = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Reflection updated successfully',
       data: {
         reflection
       }
     });
   } catch (error) {
-    next(error);
+    console.error('Error fetching reflection:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching reflection'
+    });
   }
-};
+});
 
-exports.deleteReflection = async (req, res, next) => {
+// Update reflection
+router.put('/:id', auth, validateReflection, async (req, res) => {
   try {
+    const { id } = req.params;
+    const { learnings } = req.body;
+
+    const reflection = await Reflection.findOneAndUpdate(
+      { _id: id, userId: req.user._id },
+      { learnings, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!reflection) {
+      return res.status(404).json({
+        success: false,
+        message: 'Reflection not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        reflection
+      },
+      message: 'Reflection updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating reflection:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating reflection'
+    });
+  }
+});
+
+// Delete reflection
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
     const reflection = await Reflection.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user.id
+      _id: id,
+      userId: req.user._id
     });
 
     if (!reflection) {
@@ -112,6 +178,12 @@ exports.deleteReflection = async (req, res, next) => {
       message: 'Reflection deleted successfully'
     });
   } catch (error) {
-    next(error);
+    console.error('Error deleting reflection:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting reflection'
+    });
   }
-};
+});
+
+module.exports = router;

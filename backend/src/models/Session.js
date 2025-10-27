@@ -74,11 +74,17 @@ sessionSchema.statics.getTotalFocusTime = function(userId, startDate = null) {
   ]);
 };
 
-// Instance method to check if session has reflection
+// FIXED: Instance method to check if session has reflection - remove circular dependency
 sessionSchema.methods.hasReflection = async function() {
-  const Reflection = mongoose.model('Reflection');
-  const reflection = await Reflection.findOne({ sessionId: this._id });
-  return !!reflection;
+  // Use mongoose.model() to get the Reflection model dynamically to avoid circular imports
+  try {
+    const reflection = await mongoose.model('Reflection').findOne({ sessionId: this._id });
+    return !!reflection;
+  } catch (error) {
+    // If Reflection model isn't available, return false
+    console.warn('Reflection model not available:', error.message);
+    return false;
+  }
 };
 
 // Pre-save middleware to validate data
@@ -91,9 +97,11 @@ sessionSchema.pre('save', function(next) {
   // Validate that break sessions are not too long
   if (this.sessionType !== 'work' && this.duration > 60) {
     next(new Error('Break sessions cannot be longer than 60 minutes'));
+    return;
   }
   
   next();
 });
 
-module.exports = mongoose.model('Session', sessionSchema);
+// FIXED: Check if model already exists before compiling to prevent OverwriteModelError
+module.exports = mongoose.models.Session || mongoose.model('Session', sessionSchema);

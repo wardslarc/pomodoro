@@ -7,7 +7,6 @@ import Timer from "./Timer";
 import Dashboard from "./Dashboard";
 import Settings from "./Settings";
 import ReflectionModal from "./ReflectionModal";
-import Auth from "./Auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import {
@@ -19,33 +18,27 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-type ModalType = "dashboard" | "settings" | "privacy" | "terms" | "contact" | "loginPrompt" | "auth" | "logoutConfirm" | "donate" | null;
+type ModalType = "dashboard" | "settings" | "privacy" | "terms" | "contact" | "loginPrompt" | "logoutConfirm" | "donate" | null;
 
 const Home = () => {
   const [activeTab, setActiveTab] = useState("timer");
   const [openModal, setOpenModal] = useState<ModalType>(null);
   const [showReflection, setShowReflection] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [shouldRefresh, setShouldRefresh] = useState(false);
 
   const { user, logout } = useAuth();
   const { settings } = useSettings();
 
   const navigate = useNavigate();
 
-  // Effect to handle refresh after successful login
-  useEffect(() => {
-    if (shouldRefresh) {
-      setShouldRefresh(false);
-      // Refresh the page to ensure all components re-render with the new auth state
-      window.location.reload();
-    }
-  }, [shouldRefresh]);
-
-  // Timer completion
-  const handleTimerComplete = (sessionId: string) => {
+  // Timer completion - FIXED: Accept the full session data object
+  const handleTimerComplete = (sessionData: {
+    sessionId: string;
+    sessionType: "work" | "break" | "longBreak";
+    duration: number;
+  }) => {
     if (user) {
-      setCurrentSessionId(sessionId);
+      setCurrentSessionId(sessionData.sessionId);
       setShowReflection(true);
     } else {
       setOpenModal("loginPrompt");
@@ -78,6 +71,11 @@ const Home = () => {
     setOpenModal(null);
   };
 
+  // Navigate to auth page
+  const handleNavigateToAuth = () => {
+    navigate("/auth");
+  };
+
   // Close modal if user logs out while modal is open
   const handleModalOpenChange = (open: boolean) => {
     if (!open) {
@@ -91,12 +89,6 @@ const Home = () => {
     }
   };
 
-  // Handle successful login
-  const handleSuccessfulLogin = () => {
-    setShouldRefresh(true);
-    setOpenModal(null);
-  };
-
   const modalBg = settings.darkMode ? "bg-slate-800 text-white" : "bg-blue-100 text-blue-900";
 
   // Helper function to render modal content with proper accessibility
@@ -107,9 +99,6 @@ const Home = () => {
     }
 
     switch (openModal) {
-      case "auth":
-        return <Auth onSuccess={handleSuccessfulLogin} />;
-      
       case "loginPrompt":
         return (
           <>
@@ -121,7 +110,7 @@ const Home = () => {
             </DialogHeader>
             <DialogFooter className="flex gap-2">
               <Button variant="outline" onClick={() => setOpenModal(null)} className="flex-1">Continue Without Account</Button>
-              <Button onClick={() => setOpenModal("auth")} className="flex-1 bg-blue-600 hover:bg-blue-700">Sign In</Button>
+              <Button onClick={handleNavigateToAuth} className="flex-1 bg-blue-600 hover:bg-blue-700">Sign In</Button>
             </DialogFooter>
           </>
         );
@@ -212,7 +201,7 @@ const Home = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-6 text-sm leading-relaxed">
-                            <p className="italic">Effective Date: {new Date().toLocaleDateString()}</p>
+              <p className="italic">Effective Date: {new Date().toLocaleDateString()}</p>
               <p>
                 Reflective Pomodoro ("we", "our", or "us") operates this application (the
                 "Service"). This Privacy Policy explains how we collect, use, and protect
@@ -338,7 +327,7 @@ const Home = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-6 text-sm leading-relaxed">
-                  <p className="italic">Last Updated: {new Date().toLocaleDateString()}</p>
+              <p className="italic">Last Updated: {new Date().toLocaleDateString()}</p>
               <p>
                 Please read these Terms and Conditions carefully before using Reflective
                 Pomodoro (the "Service"). By accessing or using the Service, you agree
@@ -467,22 +456,19 @@ const Home = () => {
     <div className={`min-h-screen w-full p-4 md:p-8 ${settings.darkMode ? "bg-slate-900 text-white" : "bg-blue-100 text-blue-900"}`}>
       {/* Header */}
       <header className="flex justify-between items-center mb-8">
-<div className="flex items-center space-x-4">
-  <img 
-    src="/pomodoro.png" 
-    alt="Reflective Pomodoro Logo" 
-    className="w-20 h-20 object-contain -translate-y-1"
-  />
-  <div className="flex flex-col justify-center">
-    <h1 className="text-2xl md:text-3xl font-bold">Reflective Pomodoro</h1>
-    <p className="text-sm mt-1 text-blue-700">
-      {user ? `Welcome back, ${user.name}!` : "Focus timer - Sign in for reflections & analytics"}
-    </p>
-  </div>
-</div>
-
-
-
+        <div className="flex items-center space-x-4">
+          <img 
+            src="/pomodoro.png" 
+            alt="Reflective Pomodoro Logo" 
+            className="w-20 h-20 object-contain -translate-y-1"
+          />
+          <div className="flex flex-col justify-center">
+            <h1 className="text-2xl md:text-3xl font-bold">Reflective Pomodoro</h1>
+            <p className="text-sm mt-1 text-blue-700">
+              {user ? `Welcome back, ${user.name}!` : "Focus timer - Sign in for reflections & analytics"}
+            </p>
+          </div>
+        </div>
 
         <div className="flex items-center gap-2">
           {user ? (
@@ -539,7 +525,8 @@ const Home = () => {
                 <SettingsIcon className="h-5 w-5" />
                 <Lock className="h-3 w-3 absolute -top-1 -right-1 bg-slate-400 text-white rounded-full p-0.5" />
               </Button>
-              <Button variant="default" onClick={() => setOpenModal("auth")} className="bg-blue-600 hover:bg-blue-700">
+              {/* Updated: Navigate to auth page instead of opening modal */}
+              <Button variant="default" onClick={handleNavigateToAuth} className="bg-blue-600 hover:bg-blue-700">
                 Sign In
               </Button>
             </>
@@ -563,41 +550,39 @@ const Home = () => {
         </Tabs>
       </main>
 
-{/* About Section */}
-<section className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-white text-blue-900 py-20 px-4 md:px-8 mt-16">
-  <div className="max-w-5xl mx-auto text-center">
-    <h2 className="text-5xl font-extrabold mb-8">About Reflective Pomodoro</h2>
-    <p className="text-xl leading-relaxed mb-8">
-      <span className="font-semibold">Reflective Pomodoro</span> combines focused work intervals with intentional self-reflection, helping you stay productive while learning from each session.
-    </p>
-    <h3 className="text-3xl font-bold mb-6">What is the Pomodoro Technique?</h3>
-    <p className="text-lg leading-relaxed mb-8 max-w-3xl mx-auto">
-      Developed by <span className="font-semibold">Francesco Cirillo</span>, it breaks work into intervals, traditionally <span className="font-semibold">25 minutes of focused work</span> followed by <span className="font-semibold">short breaks</span>.
-    </p>
-    <h3 className="text-3xl font-bold mb-6">How to Use Reflective Pomodoro</h3>
-    <ul className="text-lg leading-relaxed space-y-4 text-left max-w-3xl mx-auto">
-      <li>• Start a session using the timer and focus on a single task.</li>
-      <li>• Reflect after completion and log your insights.</li>
-      <li>• Review your Dashboard to visualize progress.</li>
-      <li>• Repeat the cycle to maintain focus.</li>
-    </ul>
-    <h3 className="text-3xl font-bold mt-12 mb-6">Key Features</h3>
-    <ul className="text-lg leading-relaxed space-y-4 text-left max-w-3xl mx-auto">
-      <li>• <span className="font-semibold">Reflection Recording:</span> Log insights after each session.</li>
-      <li>• <span className="font-semibold">Session Timer:</span> Customizable intervals.</li>
-      <li>• <span className="font-semibold">Dashboard Analytics:</span> Visualize productivity trends.</li>
-      <li>• <span className="font-semibold">Personalization:</span> Adjust session lengths and notifications.</li>
-    </ul>
-<p className="text-lg leading-relaxed mt-12 max-w-3xl mx-auto">
-  ⚠️ <span className="font-semibold">Ongoing Project Notice:</span> Reflective Pomodoro is an ongoing project run by me, not a big corporation. 
-  If you encounter any bugs or issues, please don’t be frustrated—simply send an email to 
-  <span className="font-semibold text-blue-700"> reflectivepomodoro.supp@gmail.com </span>. 
-  Your feedback helps me improve the tool for everyone.
-</p>
-  </div>
-</section>
-
-
+      {/* About Section */}
+      <section className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-white text-blue-900 py-20 px-4 md:px-8 mt-16">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-5xl font-extrabold mb-8">About Reflective Pomodoro</h2>
+          <p className="text-xl leading-relaxed mb-8">
+            <span className="font-semibold">Reflective Pomodoro</span> combines focused work intervals with intentional self-reflection, helping you stay productive while learning from each session.
+          </p>
+          <h3 className="text-3xl font-bold mb-6">What is the Pomodoro Technique?</h3>
+          <p className="text-lg leading-relaxed mb-8 max-w-3xl mx-auto">
+            Developed by <span className="font-semibold">Francesco Cirillo</span>, it breaks work into intervals, traditionally <span className="font-semibold">25 minutes of focused work</span> followed by <span className="font-semibold">short breaks</span>.
+          </p>
+          <h3 className="text-3xl font-bold mb-6">How to Use Reflective Pomodoro</h3>
+          <ul className="text-lg leading-relaxed space-y-4 text-left max-w-3xl mx-auto">
+            <li>• Start a session using the timer and focus on a single task.</li>
+            <li>• Reflect after completion and log your insights.</li>
+            <li>• Review your Dashboard to visualize progress.</li>
+            <li>• Repeat the cycle to maintain focus.</li>
+          </ul>
+          <h3 className="text-3xl font-bold mt-12 mb-6">Key Features</h3>
+          <ul className="text-lg leading-relaxed space-y-4 text-left max-w-3xl mx-auto">
+            <li>• <span className="font-semibold">Reflection Recording:</span> Log insights after each session.</li>
+            <li>• <span className="font-semibold">Session Timer:</span> Customizable intervals.</li>
+            <li>• <span className="font-semibold">Dashboard Analytics:</span> Visualize productivity trends.</li>
+            <li>• <span className="font-semibold">Personalization:</span> Adjust session lengths and notifications.</li>
+          </ul>
+          <p className="text-lg leading-relaxed mt-12 max-w-3xl mx-auto">
+            ⚠️ <span className="font-semibold">Ongoing Project Notice:</span> Reflective Pomodoro is an ongoing project run by me, not a big corporation. 
+            If you encounter any bugs or issues, please don't be frustrated—simply send an email to 
+            <span className="font-semibold text-blue-700"> reflectivepomodoro.supp@gmail.com </span>. 
+            Your feedback helps me improve the tool for everyone.
+          </p>
+        </div>
+      </section>
 
       {/* Reflection Modal */}
       {user && (
@@ -622,6 +607,16 @@ const Home = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Unified Modals */}
+      <Dialog 
+        open={openModal !== null} 
+        onOpenChange={handleModalOpenChange}
+      >
+        <DialogContent className={`w-full max-h-[90vh] overflow-auto ${modalBg} ${openModal === "logoutConfirm" || openModal === "donate" ? "max-w-md" : ""}`}>
+          {renderModalContent()}
+        </DialogContent>
+      </Dialog>
+
       {/* Footer */}
       <footer className="mt-12 pt-6 border-t border-blue-200">
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
@@ -632,7 +627,7 @@ const Home = () => {
             <Button variant="ghost" size="sm" onClick={() => setOpenModal("contact")} className="flex items-center gap-2 text-blue-700 hover:text-blue-900"><Mail className="h-4 w-4" /> Contact</Button>
           </div>
         </div>
-       <div className="text-center mt-4">
+        <div className="text-center mt-4">
           <img 
             src="/pomodoro.png" 
             alt="Reflective Pomodoro Logo" 
@@ -642,7 +637,6 @@ const Home = () => {
             © {new Date().getFullYear()} Reflective Pomodoro. All rights reserved.
           </p>
         </div>
-
       </footer>
     </div>
   );

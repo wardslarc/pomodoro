@@ -7,33 +7,22 @@ const reflectionSchema = new mongoose.Schema({
     required: true
   },
   sessionId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Session',
-    required: true
+    type: String, // Changed to String to support both MongoDB IDs and local IDs
+    required: true,
+    unique: true // One reflection per session
   },
   learnings: {
     type: String,
-    required: [true, 'Learnings are required'],
+    required: true,
     trim: true,
-    maxlength: [1000, 'Learnings cannot exceed 1000 characters']
-  },
-  rating: {
-    type: Number,
-    min: 1,
-    max: 5,
-    default: 3
-  },
-  tags: [{
-    type: String,
-    trim: true,
-    maxlength: 20
-  }]
+    maxlength: 2000
+  }
 }, {
   timestamps: true
 });
 
-// Index for efficient queries
+// Add indexes for better performance
 reflectionSchema.index({ userId: 1, createdAt: -1 });
-reflectionSchema.index({ sessionId: 1 });
+reflectionSchema.index({ sessionId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Reflection', reflectionSchema);

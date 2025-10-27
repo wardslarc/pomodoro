@@ -1,146 +1,98 @@
 const express = require('express');
-const { body, query } = require('express-validator');
-const {
-  createSession,
-  getSessions,
-  getSessionStats,
-  getSessionById,
-  updateSession,
-  deleteSession
-} = require('../controllers/sessionsController');
+const { validateSession } = require('../middleware/validation');
 const auth = require('../middleware/auth');
-const { handleValidationErrors } = require('../middleware/validation');
-const { controllerHandler } = require('../utils/asyncHandler');
+const Session = require('../models/Session');
 
 const router = express.Router();
 
-// Validation rules for session creation
-const sessionValidation = [
-  body('sessionType')
-    .isIn(['work', 'break', 'longBreak'])
-    .withMessage('Session type must be work, break, or longBreak'),
-  body('duration')
-    .isInt({ min: 1, max: 180 })
-    .withMessage('Duration must be between 1 and 180 minutes'),
-  body('completedAt')
-    .optional()
-    .isISO8601()
-    .withMessage('CompletedAt must be a valid date'),
-  body('notes')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('Notes cannot exceed 500 characters'),
-  body('tags')
-    .optional()
-    .isArray()
-    .withMessage('Tags must be an array'),
-  body('tags.*')
-    .isLength({ max: 20 })
-    .withMessage('Each tag cannot exceed 20 characters')
-];
+// Get user sessions
+router.get('/', auth, async (req, res) => {
+  try {
+    const { limit = 100, page = 1 } = req.query;
+    
+    const sessions = await Session.find({ userId: req.user._id })
+      .sort({ completedAt: -1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
 
-// Validation rules for query parameters
-const queryValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
-  query('limit')
-    .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage('Limit must be between 1 and 100'),
-  query('sessionType')
-    .optional()
-    .isIn(['work', 'break', 'longBreak'])
-    .withMessage('Session type must be work, break, or longBreak'),
-  query('startDate')
-    .optional()
-    .isISO8601()
-    .withMessage('Start date must be a valid ISO 8601 date'),
-  query('endDate')
-    .optional()
-    .isISO8601()
-    .withMessage('End date must be a valid ISO 8601 date'),
-  query('days')
-    .optional()
-    .isInt({ min: 1, max: 365 })
-    .withMessage('Days must be between 1 and 365')
-];
+    const total = await Session.countDocuments({ userId: req.user._id });
 
-// Routes
+    res.json({
+      success: true,
+      data: {
+        sessions,
+        total,
+        page: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching sessions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching sessions'
+    });
+  }
+});
 
-/**
- * @route POST /api/sessions
- * @description Create a new session
- * @access Private
- */
-router.post(
-  '/', 
-  auth, 
-  sessionValidation, 
-  handleValidationErrors, 
-  controllerHandler(createSession)
-);
+// Create new session
+router.post('/', auth, validateSession, async (req, res) => {
+  try {
+    const { sessionType, duration, completedAt } = req.body;
 
-/**
- * @route GET /api/sessions
- * @description Get user's sessions with optional filtering and pagination
- * @access Private
- */
-router.get(
-  '/', 
-  auth, 
-  queryValidation, 
-  handleValidationErrors, 
-  controllerHandler(getSessions)
-);
+    const session = new Session({
+      userId: req.user._id,
+      sessionType,
+      duration,
+      completedAt: completedAt ? new Date(completedAt) : new Date()
+    });
 
-/**
- * @route GET /api/sessions/stats
- * @description Get session statistics and analytics
- * @access Private
- */
-router.get(
-  '/stats', 
-  auth, 
-  queryValidation, 
-  handleValidationErrors, 
-  controllerHandler(getSessionStats)
-);
+    await session.save();
 
-/**
- * @route GET /api/sessions/:id
- * @description Get a specific session by ID
- * @access Private
- */
-router.get(
-  '/:id', 
-  auth, 
-  controllerHandler(getSessionById)
-);
+    res.status(201).json({
+      success: true,
+      data: {
+        session
+      },
+      message: 'Session saved successfully'
+    });
+  } catch (error) {
+    console.error('Error creating session:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating session'
+    });
+  }
+});
 
-/**
- * @route PUT /api/sessions/:id
- * @description Update a session
- * @access Private
- */
-router.put(
-  '/:id', 
-  auth, 
-  sessionValidation, 
-  handleValidationErrors, 
-  controllerHandler(updateSession)
-);
+// Delete session
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const session = await Session.findOneAndDelete({
+      _id: id,
+      userId: req.user._id
+    });
 
-/**
- * @route DELETE /api/sessions/:id
- * @description Delete a session
- * @access Private
- */
-router.delete(
-  '/:id', 
-  auth, 
-  controllerHandler(deleteSession)
-);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: 'Session not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Session deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting session:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting session'
+    });
+  }
+});
 
 module.exports = router;

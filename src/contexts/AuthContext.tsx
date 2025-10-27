@@ -9,6 +9,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  token: string | null; // NEW: Store token in state
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
@@ -28,8 +29,12 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+// Production API URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null); // NEW: Token state
   const [isLoading, setIsLoading] = useState(true);
 
   // Check for existing session on mount
@@ -37,15 +42,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const checkExistingSession = () => {
       try {
         const savedUser = localStorage.getItem('pomodoro_user');
-        if (savedUser) {
+        const savedToken = localStorage.getItem('auth_token');
+        
+        if (savedUser && savedToken) {
           const userData = JSON.parse(savedUser);
           // Convert string date back to Date object
           userData.createdAt = new Date(userData.createdAt);
           setUser(userData);
+          setToken(savedToken); // NEW: Set token in state
         }
       } catch (error) {
         console.error("Error loading user session:", error);
-        localStorage.removeItem('pomodoro_user');
+        clearAuthData();
       } finally {
         setIsLoading(false);
       }
@@ -54,12 +62,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkExistingSession();
   }, []);
 
+  // Helper function to clear all auth data
+  const clearAuthData = () => {
+    localStorage.removeItem('pomodoro_user');
+    localStorage.removeItem('auth_token');
+    setUser(null);
+    setToken(null);
+  };
+
+  // Helper function for API calls
+  const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+    const response = await fetch(`${API_BASE_URL}/api/auth${endpoint}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  };
+
   const signup = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       // Basic validation
       if (!email || !password || !name) {
         throw new Error("All fields are required");
@@ -69,29 +100,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error("Password should be at least 6 characters");
       }
 
-      // Check if user already exists (in a real app, this would be an API call)
-      const existingUsers = JSON.parse(localStorage.getItem('pomodoro_users') || '{}');
-      if (existingUsers[email]) {
-        throw new Error("User already exists with this email");
+      const data = await apiRequest('/signup', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      if (data.success) {
+        const userData = data.data.user;
+        const authToken = data.data.token;
+
+        const newUser: User = {
+          uid: userData._id || userData.id,
+          name: userData.name,
+          email: userData.email,
+          createdAt: new Date(userData.createdAt),
+        };
+
+        // Save to localStorage
+        localStorage.setItem('pomodoro_user', JSON.stringify(newUser));
+        localStorage.setItem('auth_token', authToken);
+        
+        setUser(newUser);
+        setToken(authToken); // NEW: Set token in state
+      } else {
+        throw new Error(data.message || "Signup failed");
       }
-
-      // Create new user
-      const newUser: User = {
-        uid: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name,
-        email,
-        createdAt: new Date(),
-      };
-
-      // Save to localStorage (in a real app, this would be your backend)
-      existingUsers[email] = {
-        ...newUser,
-        password: btoa(password) // Simple encoding for demo (not secure for production)
-      };
-      localStorage.setItem('pomodoro_users', JSON.stringify(existingUsers));
-      localStorage.setItem('pomodoro_user', JSON.stringify(newUser));
-      
-      setUser(newUser);
     } catch (error: any) {
       throw new Error(error.message || "Signup failed");
     } finally {
@@ -102,37 +135,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       // Basic validation
       if (!email || !password) {
         throw new Error("Email and password are required");
       }
 
-      // Check if user exists (in a real app, this would be an API call)
-      const existingUsers = JSON.parse(localStorage.getItem('pomodoro_users') || '{}');
-      const userData = existingUsers[email];
+      const data = await apiRequest('/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
 
-      if (!userData) {
-        throw new Error("No user found with this email");
+      if (data.success) {
+        const userData = data.data.user;
+        const authToken = data.data.token;
+
+        const loggedInUser: User = {
+          uid: userData._id || userData.id,
+          name: userData.name,
+          email: userData.email,
+          createdAt: new Date(userData.createdAt),
+        };
+
+        localStorage.setItem('pomodoro_user', JSON.stringify(loggedInUser));
+        localStorage.setItem('auth_token', authToken);
+        
+        setUser(loggedInUser);
+        setToken(authToken); // NEW: Set token in state
+      } else {
+        throw new Error(data.message || "Login failed");
       }
-
-      // Check password (in a real app, this would be handled by your backend)
-      if (btoa(password) !== userData.password) {
-        throw new Error("Invalid password");
-      }
-
-      // Create user object without password
-      const loggedInUser: User = {
-        uid: userData.uid,
-        name: userData.name,
-        email: userData.email,
-        createdAt: new Date(userData.createdAt),
-      };
-
-      localStorage.setItem('pomodoro_user', JSON.stringify(loggedInUser));
-      setUser(loggedInUser);
     } catch (error: any) {
       throw new Error(error.message || "Login failed");
     } finally {
@@ -143,24 +174,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithGoogle = async () => {
     setIsLoading(true);
     try {
-      // Simulate Google OAuth flow
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Mock Google user data
-      const mockGoogleUser: User = {
-        uid: `google-user-${Date.now()}`,
-        name: "Google User",
-        email: "user@gmail.com",
-        createdAt: new Date(),
-      };
-
-      // Save to localStorage (in a real app, this would be your backend)
-      localStorage.setItem('pomodoro_user', JSON.stringify(mockGoogleUser));
+      // Redirect to backend Google OAuth endpoint
+      window.location.href = `${API_BASE_URL}/api/auth/google`;
       
-      setUser(mockGoogleUser);
+      // Note: The OAuth flow will redirect back to your frontend
+      // You'll need to handle the callback in your app
+      // This is a simplified version - you might want to use popup or different flow
+      
+      // For now, we'll simulate the process
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      throw new Error("Google OAuth not fully implemented. Please use email/password for now.");
+      
     } catch (error: any) {
-      console.error("Google sign-in failed:", error);
-      throw new Error("Google sign-in failed");
+      throw new Error(error.message || "Google sign-in failed");
     } finally {
       setIsLoading(false);
     }
@@ -169,11 +195,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       setIsLoading(true);
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
       
-      localStorage.removeItem('pomodoro_user');
-      setUser(null);
+      // Call backend logout if needed (to blacklist token, etc.)
+      if (token) {
+        try {
+          await apiRequest('/logout', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+        } catch (error) {
+          console.error("Error during backend logout:", error);
+          // Continue with frontend logout even if backend fails
+        }
+      }
+
+      clearAuthData();
     } catch (error: any) {
       throw new Error("Logout failed");
     } finally {
@@ -184,11 +222,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   return (
     <AuthContext.Provider value={{ 
       user, 
+      token, // NEW: Provide token directly
       isLoading, 
       login, 
       signup, 
       logout, 
-      loginWithGoogle 
+      loginWithGoogle,
     }}>
       {children}
     </AuthContext.Provider>

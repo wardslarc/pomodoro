@@ -4,24 +4,25 @@ import Login from "./Login";
 import Signup from "./Signup";
 
 interface AuthProps {
-  onSuccess?: () => void; // Add this line
+  onSuccess?: () => void;
 }
 
-const Auth: React.FC<AuthProps> = ({ onSuccess }) => { // Add the prop here
+const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const { login, signup, loginWithGoogle, isLoading } = useAuth();
+  const { login, signup, isLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async (email: string, password: string) => {
     try {
       setError(null);
       await login(email, password);
-      // Call onSuccess after successful login
       if (onSuccess) {
         onSuccess();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      const errorMessage = err instanceof Error ? err.message : "Login failed";
+      setError(errorMessage);
+      throw err; // Re-throw to let Login component handle it
     }
   };
 
@@ -29,25 +30,13 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => { // Add the prop here
     try {
       setError(null);
       await signup(name, email, password);
-      // Call onSuccess after successful signup
       if (onSuccess) {
         onSuccess();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Signup failed");
-    }
-  };
-
-  const handleGoogleAuth = async () => {
-    try {
-      setError(null);
-      await loginWithGoogle();
-      // Call onSuccess after successful Google auth
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Google authentication failed");
+      const errorMessage = err instanceof Error ? err.message : "Signup failed";
+      setError(errorMessage);
+      throw err; // Re-throw to let Signup component handle it
     }
   };
 
@@ -56,7 +45,6 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => { // Add the prop here
       <div>
         <Login
           onLogin={handleLogin}
-          onGoogleLogin={handleGoogleAuth} // Use the new handler
           onSwitchToSignup={() => {
             setIsLogin(false);
             setError(null);
@@ -76,7 +64,6 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => { // Add the prop here
     <div>
       <Signup
         onSignup={handleSignup}
-        onGoogleSignup={handleGoogleAuth} // Use the new handler
         onSwitchToLogin={() => {
           setIsLogin(true);
           setError(null);
