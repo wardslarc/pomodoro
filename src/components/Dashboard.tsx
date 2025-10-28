@@ -11,7 +11,24 @@ import { Calendar } from "@/components/ui/calendar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Award, BarChart2, Clock, Target, RefreshCw } from "lucide-react";
+import { 
+  Award, 
+  BarChart3, 
+  Clock, 
+  Target, 
+  RefreshCw, 
+  Calendar as CalendarIcon,
+  TrendingUp,
+  Users,
+  Zap,
+  Brain,
+  Lightbulb,
+  Crown,
+  Flame,
+  Star,
+  Activity,
+  PieChart
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardProps {}
@@ -46,6 +63,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Load data from database
   const loadDashboardData = async () => {
@@ -265,14 +283,26 @@ const Dashboard: React.FC<DashboardProps> = () => {
   };
 
   const todaySessions = getTodaySessions();
+  const workSessions = sessions.filter(s => s.sessionType === 'work');
+  const breakSessions = sessions.filter(s => s.sessionType === 'break');
+  const longBreakSessions = sessions.filter(s => s.sessionType === 'longBreak');
+  const totalFocusMinutes = workSessions.reduce((total, session) => total + session.duration, 0);
+
+  // Calculate productivity score (0-100)
+  const productivityScore = Math.min(100, Math.round((workSessions.length / Math.max(1, sessions.length)) * 100));
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4 bg-background">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-center">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-            <p>Loading dashboard data...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-blue-950 p-4 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-center items-center h-96">
+            <div className="text-center space-y-4">
+              <RefreshCw className="h-12 w-12 animate-spin mx-auto text-primary" />
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Loading Dashboard</h3>
+                <p className="text-muted-foreground">Crunching your productivity numbers...</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -280,302 +310,497 @@ const Dashboard: React.FC<DashboardProps> = () => {
   }
 
   return (
-    <div className="container mx-auto p-4 bg-background">
-      {/* Header with Refresh Button */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={refreshing}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </Button>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-blue-950 p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-2xl">
+                <PieChart className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  Productivity Dashboard
+                </h1>
+                <p className="text-lg text-muted-foreground mt-2">
+                  Track your focus sessions and optimize your workflow
+                </p>
+              </div>
+            </div>
+          </div>
 
-      {/* Data Source Indicator */}
-      {user && (
-        <div className="mb-4">
-          <Badge variant="secondary" className="text-xs">
-            {sessions.length > 0 ? '📊 Cloud Data' : '📱 Local Data'}
-          </Badge>
+          <div className="flex items-center gap-4">
+            {user && (
+              <Badge variant="secondary" className="px-4 py-2 text-sm">
+                {sessions.length > 0 ? '☁️ Cloud Synced' : '📱 Local Data'}
+              </Badge>
+            )}
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="gap-3 px-6 py-3"
+            >
+              <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh Data'}
+            </Button>
+          </div>
         </div>
-      )}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Pomodoros
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Clock className="mr-2 h-4 w-4 text-primary" />
-              <span className="text-2xl font-bold">{completedPomodoros}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Work Sessions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Target className="mr-2 h-4 w-4 text-primary" />
-              <span className="text-2xl font-bold">
-                {sessions.filter(s => s.sessionType === 'work').length}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Current Streak
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Award className="mr-2 h-4 w-4 text-primary" />
-              <span className="text-2xl font-bold">{streakDays} days</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              This Week
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <BarChart2 className="mr-2 h-4 w-4 text-primary" />
-              <span className="text-2xl font-bold">
-                {weeklyPomodoros.reduce((a, b) => a + b, 0)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs for different views */}
-      <Tabs defaultValue="daily" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="daily">Daily Stats</TabsTrigger>
-          <TabsTrigger value="weekly">Weekly Stats</TabsTrigger>
-          <TabsTrigger value="calendar">Calendar View</TabsTrigger>
-        </TabsList>
-
-        {/* Daily Stats Tab */}
-        <TabsContent value="daily" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Today's Activity</CardTitle>
-              <CardDescription>
-                Your completed sessions and progress
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium mb-2">
-                    Completed Sessions Today
-                  </h4>
-                  <div className="grid grid-cols-4 gap-2">
-                    {todaySessions.length > 0 ? (
-                      todaySessions.map((session, i) => (
-                        <Badge
-                          key={`${session.id}-${i}`} // FIXED: Added unique key
-                          variant={session.sessionType === 'work' ? 'default' : 'outline'}
-                          className="flex items-center justify-center py-1"
-                        >
-                          {session.sessionType === 'work' ? 'Work' : 'Break'} #{i + 1}
-                        </Badge>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground col-span-4 text-center py-2">
-                        No sessions completed today
-                      </p>
-                    )}
+        {/* Main Dashboard Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {/* Left Column - Overview Cards */}
+          <div className="xl:col-span-2 space-y-8">
+            {/* Key Metrics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-5 w-5" />
+                        <span className="text-sm font-medium opacity-90">Total Pomodoros</span>
+                      </div>
+                      <div className="text-3xl font-bold">{completedPomodoros}</div>
+                      <div className="text-sm opacity-80">Work sessions completed</div>
+                    </div>
+                    <div className="p-3 bg-white/10 rounded-full">
+                      <Target className="h-6 w-6" />
+                    </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative overflow-hidden bg-gradient-to-br from-green-500 to-green-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Flame className="h-5 w-5" />
+                        <span className="text-sm font-medium opacity-90">Current Streak</span>
+                      </div>
+                      <div className="text-3xl font-bold">{streakDays} days</div>
+                      <div className="text-sm opacity-80">Consistent focus days</div>
+                    </div>
+                    <div className="p-3 bg-white/10 rounded-full">
+                      <Award className="h-6 w-6" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-5 w-5" />
+                        <span className="text-sm font-medium opacity-90">This Week</span>
+                      </div>
+                      <div className="text-3xl font-bold">
+                        {weeklyPomodoros.reduce((a, b) => a + b, 0)}
+                      </div>
+                      <div className="text-sm opacity-80">Weekly sessions</div>
+                    </div>
+                    <div className="p-3 bg-white/10 rounded-full">
+                      <Activity className="h-6 w-6" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Brain className="h-5 w-5" />
+                        <span className="text-sm font-medium opacity-90">Focus Time</span>
+                      </div>
+                      <div className="text-3xl font-bold">{totalFocusMinutes}m</div>
+                      <div className="text-sm opacity-80">Total focused minutes</div>
+                    </div>
+                    <div className="p-3 bg-white/10 rounded-full">
+                      <Crown className="h-6 w-6" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Tabs Navigation */}
+            <Card>
+              <CardHeader className="pb-4">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 h-14">
+                    <TabsTrigger value="overview" className="flex items-center gap-3 text-base">
+                      <BarChart3 className="h-5 w-5" />
+                      <span>Overview</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="analytics" className="flex items-center gap-3 text-base">
+                      <TrendingUp className="h-5 w-5" />
+                      <span>Analytics</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="insights" className="flex items-center gap-3 text-base">
+                      <Lightbulb className="h-5 w-5" />
+                      <span>Insights</span>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Overview Tab */}
+                  <TabsContent value="overview" className="space-y-6 mt-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Weekly Activity */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Activity className="h-5 w-5 text-primary" />
+                            Weekly Activity
+                          </CardTitle>
+                          <CardDescription>Your focus sessions this week</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-6">
+                            <div className="grid grid-cols-7 gap-2 h-32">
+                              {weeklyPomodoros.map((count, index) => (
+                                <div key={index} className="flex flex-col items-center">
+                                  <div className="flex-1 w-full flex items-end">
+                                    <div
+                                      className="bg-gradient-to-t from-primary to-primary/80 w-full rounded-t-lg transition-all duration-500"
+                                      style={{
+                                        height: `${Math.max((count / Math.max(...weeklyPomodoros.filter(n => n > 0)) || 1) * 100, 8)}%`,
+                                      }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-xs font-medium mt-2 text-muted-foreground">
+                                    {daysOfWeek[index]}
+                                  </span>
+                                  <span className="text-xs font-bold mt-1">{count}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Session Distribution */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Users className="h-5 w-5 text-primary" />
+                            Session Distribution
+                          </CardTitle>
+                          <CardDescription>Breakdown of your session types</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center p-4 bg-muted/30 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-3 h-3 bg-primary rounded-full"></div>
+                                <span className="font-medium">Work Sessions</span>
+                              </div>
+                              <Badge variant="secondary">{workSessions.length}</Badge>
+                            </div>
+                            <div className="flex justify-between items-center p-4 bg-muted/30 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                <span className="font-medium">Short Breaks</span>
+                              </div>
+                              <Badge variant="secondary">{breakSessions.length}</Badge>
+                            </div>
+                            <div className="flex justify-between items-center p-4 bg-muted/30 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                <span className="font-medium">Long Breaks</span>
+                              </div>
+                              <Badge variant="secondary">{longBreakSessions.length}</Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Today's Activity */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <CalendarIcon className="h-5 w-5 text-primary" />
+                          Today's Activity
+                        </CardTitle>
+                        <CardDescription>Sessions completed today</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {todaySessions.length > 0 ? (
+                            todaySessions.map((session, i) => (
+                              <div
+                                key={`${session.id}-${i}`}
+                                className={`p-4 rounded-xl border-2 text-center transition-all hover:scale-105 ${
+                                  session.sessionType === 'work' 
+                                    ? 'bg-primary/10 border-primary/20' 
+                                    : 'bg-green-500/10 border-green-500/20'
+                                }`}
+                              >
+                                <div className={`text-2xl font-bold mb-2 ${
+                                  session.sessionType === 'work' ? 'text-primary' : 'text-green-600'
+                                }`}>
+                                  {i + 1}
+                                </div>
+                                <Badge 
+                                  variant={session.sessionType === 'work' ? 'default' : 'outline'}
+                                  className="text-xs"
+                                >
+                                  {session.sessionType === 'work' ? 'Work' : 'Break'}
+                                </Badge>
+                                <div className="text-xs text-muted-foreground mt-2">
+                                  {session.duration}min
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="col-span-full text-center py-8">
+                              <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                              <p className="text-muted-foreground">No sessions completed today</p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Start a Pomodoro session to see your activity here
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Analytics Tab */}
+                  <TabsContent value="analytics" className="space-y-6 mt-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Productivity Score */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5 text-primary" />
+                            Productivity Score
+                          </CardTitle>
+                          <CardDescription>Your focus efficiency rating</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-center space-y-4">
+                            <div className="relative inline-block">
+                              <div className="w-32 h-32 rounded-full flex items-center justify-center border-8"
+                                style={{
+                                  background: `conic-gradient(#3b82f6 ${productivityScore * 3.6}deg, #e5e7eb 0deg)`
+                                }}
+                              >
+                                <div className="w-24 h-24 bg-background rounded-full flex items-center justify-center">
+                                  <span className="text-2xl font-bold">{productivityScore}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-lg">
+                                {productivityScore >= 80 ? 'Excellent!' : 
+                                 productivityScore >= 60 ? 'Great Job!' :
+                                 productivityScore >= 40 ? 'Good Progress' : 'Getting Started'}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {productivityScore >= 80 ? 'Keep up the amazing focus!' : 
+                                 'Continue building your productive habits'}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Session Trends */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <BarChart3 className="h-5 w-5 text-primary" />
+                            Session Trends
+                          </CardTitle>
+                          <CardDescription>Your weekly performance</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {weeklyPomodoros.map((count, index) => (
+                              <div key={index} className="flex items-center justify-between">
+                                <span className="text-sm font-medium w-12">{daysOfWeek[index]}</span>
+                                <div className="flex-1 mx-4">
+                                  <Progress 
+                                    value={count > 0 ? (count / Math.max(...weeklyPomodoros)) * 100 : 0} 
+                                    className="h-3"
+                                  />
+                                </div>
+                                <span className="text-sm font-bold w-8 text-right">
+                                  {count}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </TabsContent>
+
+                  {/* Insights Tab */}
+                  <TabsContent value="insights" className="space-y-6 mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Lightbulb className="h-5 w-5 text-primary" />
+                          Recent Reflections
+                        </CardTitle>
+                        <CardDescription>Learnings from your focus sessions</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {recentReflections.length > 0 ? (
+                            recentReflections.map((reflection) => (
+                              <div key={reflection.id} className="p-4 rounded-xl border bg-card hover:bg-muted/30 transition-colors">
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-primary/10 rounded-lg">
+                                      <Brain className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <div>
+                                      <span className="font-semibold">
+                                        {reflection.session 
+                                          ? `${reflection.session.sessionType === 'work' ? 'Work' : 'Break'} Session`
+                                          : 'Session Reflection'
+                                        }
+                                      </span>
+                                      {reflection.session && (
+                                        <Badge variant="outline" className="ml-2 text-xs">
+                                          {reflection.session.duration}min
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <span className="text-sm text-muted-foreground">
+                                    {reflection.createdAt.toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <p className="text-muted-foreground leading-relaxed">
+                                  {reflection.learnings}
+                                </p>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-8">
+                              <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                              <p className="text-muted-foreground">No reflections yet</p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Add reflections to your completed sessions to see insights here
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </CardHeader>
+            </Card>
+          </div>
+
+          {/* Right Column - Sidebar */}
+          <div className="space-y-8">
+            {/* Calendar Card */}
+            <Card className="sticky top-8">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarIcon className="h-5 w-5 text-primary" />
+                  Activity Calendar
+                </CardTitle>
+                <CardDescription>Your focus day history</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-center">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    className="rounded-xl border"
+                    modifiers={{
+                      highlighted: calendarData.map(d => d.date),
+                    }}
+                    modifiersClassNames={{
+                      highlighted: "bg-primary text-primary-foreground font-bold",
+                    }}
+                  />
                 </div>
                 
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Session Types</h4>
-                  <div className="flex space-x-4">
-                    <Badge variant="secondary" className="px-3 py-1">
-                      Work: {sessions.filter(s => s.sessionType === 'work').length}
-                    </Badge>
-                    <Badge variant="outline" className="px-3 py-1">
-                      Break: {sessions.filter(s => s.sessionType === 'break').length}
-                    </Badge>
-                    <Badge variant="outline" className="px-3 py-1">
-                      Long Break: {sessions.filter(s => s.sessionType === 'longBreak').length}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Reflections</CardTitle>
-              <CardDescription>Your learnings from recent sessions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentReflections.length > 0 ? (
-                  recentReflections.map((reflection) => (
-                    <div key={reflection.id} className="border-b pb-3 last:border-0">
-                      <div className="flex justify-between mb-1">
-                        <span className="font-medium">
-                          {reflection.session 
-                            ? `${reflection.session.sessionType === 'work' ? 'Work' : 'Break'} Session`
-                            : 'Session'}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {reflection.createdAt.toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {reflection.learnings}
-                      </p>
-                      {reflection.session && (
-                        <div className="mt-1">
-                          <Badge variant="outline" className="text-xs">
-                            Duration: {reflection.session.duration}min
-                          </Badge>
-                        </div>
-                      )}
+                <div className="mt-6 space-y-4">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="p-3 bg-muted/30 rounded-lg">
+                      <div className="text-2xl font-bold text-primary">{sessions.length}</div>
+                      <div className="text-xs text-muted-foreground">Total Sessions</div>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No reflections yet. Add reflections to your Pomodoro sessions to see them here.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Weekly Stats Tab */}
-        <TabsContent value="weekly" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Weekly Overview</CardTitle>
-              <CardDescription>
-                Your productivity for the past week
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-8">
-                <div>
-                  <h4 className="text-sm font-medium mb-4">
-                    Pomodoros Completed
-                  </h4>
-                  <div className="grid grid-cols-7 gap-2 h-40">
-                    {weeklyPomodoros.map((count, index) => (
-                      <div key={index} className="flex flex-col items-center">
-                        <div className="flex-1 w-full flex items-end">
-                          <div
-                            className="bg-primary/80 w-full rounded-t"
-                            style={{
-                              height: `${Math.max((count / Math.max(...weeklyPomodoros.filter(n => n > 0)) || 1) * 100, 10)}%`,
-                            }}
-                          ></div>
+                    <div className="p-3 bg-muted/30 rounded-lg">
+                      <div className="text-2xl font-bold text-primary">{calendarData.length}</div>
+                      <div className="text-xs text-muted-foreground">Active Days</div>
+                    </div>
+                    <div className="p-3 bg-muted/30 rounded-lg">
+                      <div className="text-2xl font-bold text-primary">{streakDays}</div>
+                      <div className="text-xs text-muted-foreground">Day Streak</div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border">
+                    <div className="flex items-center gap-3">
+                      <Star className="h-5 w-5 text-primary" />
+                      <div>
+                        <div className="font-semibold">Keep it up!</div>
+                        <div className="text-sm text-muted-foreground">
+                          {streakDays > 0 
+                            ? `You're on a ${streakDays}-day streak!` 
+                            : 'Start a streak by focusing tomorrow'
+                          }
                         </div>
-                        <span className="text-xs mt-2">
-                          {daysOfWeek[index]}
-                        </span>
-                        <span className="text-xs font-medium">{count}</span>
                       </div>
-                    ))}
+                    </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div>
-                  <h4 className="text-sm font-medium mb-4">Daily Activity</h4>
-                  <div className="space-y-2">
-                    {weeklyPomodoros.map((count, index) => (
-                      <div key={index} className="flex items-center">
-                        <span className="text-xs w-16 font-medium">
-                          {daysOfWeek[index]}
-                        </span>
-                        <div className="flex-1">
-                          <Progress 
-                            value={count > 0 ? (count / Math.max(...weeklyPomodoros)) * 100 : 0} 
-                            className="h-2" 
-                          />
-                        </div>
-                        <span className="text-xs font-medium ml-2">
-                          {count} session{count !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    ))}
+            {/* Quick Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Stats</CardTitle>
+                <CardDescription>Your productivity at a glance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                    <span className="text-sm font-medium">Average Sessions/Day</span>
+                    <Badge variant="secondary">
+                      {calendarData.length > 0 
+                        ? (sessions.length / calendarData.length).toFixed(1) 
+                        : '0'
+                      }
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                    <span className="text-sm font-medium">Best Day</span>
+                    <Badge variant="secondary">
+                      {Math.max(...weeklyPomodoros)} sessions
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                    <span className="text-sm font-medium">Completion Rate</span>
+                    <Badge variant="secondary">
+                      {sessions.length > 0 ? Math.round((workSessions.length / sessions.length) * 100) : 0}%
+                    </Badge>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Calendar View Tab */}
-        <TabsContent value="calendar" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity Calendar</CardTitle>
-              <CardDescription>
-                Your Pomodoro activity over time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-center">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  className="rounded-md border"
-                  modifiers={{
-                    highlighted: calendarData.map(d => d.date),
-                  }}
-                  modifiersClassNames={{
-                    highlighted: "bg-primary text-primary-foreground",
-                  }}
-                />
-              </div>
-
-              <div className="mt-6">
-                <h4 className="text-sm font-medium mb-2">Activity Summary</h4>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{sessions.length}</div>
-                    <div className="text-muted-foreground">Total Sessions</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{calendarData.length}</div>
-                    <div className="text-muted-foreground">Active Days</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{streakDays}</div>
-                    <div className="text-muted-foreground">Current Streak</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -91,6 +91,25 @@ const Home = () => {
 
   const modalBg = settings.darkMode ? "bg-slate-800 text-white" : "bg-blue-100 text-blue-900";
 
+  // Helper function to get modal size based on content type
+  const getModalSize = (modalType: ModalType) => {
+    switch (modalType) {
+      case "dashboard":
+      case "settings":
+        return "max-w-7xl w-full h-[90vh]"; // Full dashboard/settings view
+      case "privacy":
+      case "terms":
+        return "max-w-4xl w-full max-h-[80vh]"; // Large for lengthy content
+      case "contact":
+        return "max-w-2xl w-full"; // Medium for contact info
+      case "loginPrompt":
+      case "logoutConfirm":
+      case "donate":
+      default:
+        return "max-w-md w-full"; // Small for simple prompts
+    }
+  };
+
   // Helper function to render modal content with proper accessibility
   const renderModalContent = () => {
     // Additional protection: don't render protected modals if user is not logged in
@@ -124,7 +143,9 @@ const Home = () => {
                 Analytics and productivity dashboard
               </DialogDescription>
             </DialogHeader>
-            <Dashboard />
+            <div className="overflow-auto h-full">
+              <Dashboard />
+            </div>
           </>
         );
       
@@ -137,7 +158,9 @@ const Home = () => {
                 Application settings and preferences
               </DialogDescription>
             </DialogHeader>
-            <Settings />
+            <div className="overflow-auto h-full">
+              <Settings />
+            </div>
           </>
         );
 
@@ -200,7 +223,7 @@ const Home = () => {
                 How we handle your data and privacy
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-6 text-sm leading-relaxed">
+            <div className="space-y-6 text-sm leading-relaxed overflow-auto max-h-[60vh]">
               <p className="italic">Effective Date: {new Date().toLocaleDateString()}</p>
               <p>
                 Reflective Pomodoro ("we", "our", or "us") operates this application (the
@@ -326,7 +349,7 @@ const Home = () => {
                 Terms of service for using Reflective Pomodoro
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-6 text-sm leading-relaxed">
+            <div className="space-y-6 text-sm leading-relaxed overflow-auto max-h-[60vh]">
               <p className="italic">Last Updated: {new Date().toLocaleDateString()}</p>
               <p>
                 Please read these Terms and Conditions carefully before using Reflective
@@ -597,22 +620,12 @@ const Home = () => {
         />
       )}
 
-      {/* Unified Modals */}
+      {/* Unified Modal */}
       <Dialog 
         open={openModal !== null} 
         onOpenChange={handleModalOpenChange}
       >
-        <DialogContent className={`w-full max-h-[90vh] overflow-auto ${modalBg} ${openModal === "logoutConfirm" || openModal === "donate" ? "max-w-md" : ""}`}>
-          {renderModalContent()}
-        </DialogContent>
-      </Dialog>
-
-      {/* Unified Modals */}
-      <Dialog 
-        open={openModal !== null} 
-        onOpenChange={handleModalOpenChange}
-      >
-        <DialogContent className={`w-full max-h-[90vh] overflow-auto ${modalBg} ${openModal === "logoutConfirm" || openModal === "donate" ? "max-w-md" : ""}`}>
+        <DialogContent className={`${getModalSize(openModal)} max-h-[90vh] overflow-hidden ${modalBg}`}>
           {renderModalContent()}
         </DialogContent>
       </Dialog>
