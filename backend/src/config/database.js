@@ -6,7 +6,6 @@ const connectDB = async () => {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      // Additional connection options for production
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
@@ -14,7 +13,6 @@ const connectDB = async () => {
 
     logger.info(`MongoDB Connected: ${conn.connection.host}`);
     
-    // Event listeners for database connection
     mongoose.connection.on('error', (err) => {
       logger.error('MongoDB connection error:', err);
     });
@@ -34,7 +32,6 @@ const connectDB = async () => {
   }
 };
 
-// Graceful shutdown
 const gracefulShutdown = async () => {
   try {
     await mongoose.connection.close();
@@ -46,7 +43,6 @@ const gracefulShutdown = async () => {
   }
 };
 
-// Handle application termination
 process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 

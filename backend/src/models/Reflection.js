@@ -7,9 +7,9 @@ const reflectionSchema = new mongoose.Schema({
     required: true
   },
   sessionId: {
-    type: String, // Changed to String to support both MongoDB IDs and local IDs
+    type: String,
     required: true,
-    unique: true // One reflection per session
+    unique: true
   },
   learnings: {
     type: String,
@@ -21,7 +21,6 @@ const reflectionSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Add indexes for better performance
 reflectionSchema.index({ userId: 1, createdAt: -1 });
 reflectionSchema.index({ sessionId: 1 }, { unique: true });
 

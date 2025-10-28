@@ -10,7 +10,6 @@ const { handleValidationErrors } = require('../middleware/validation');
 
 const router = express.Router();
 
-// Validation rules
 const settingsValidation = [
   body('workDuration')
     .optional()
@@ -34,7 +33,6 @@ const settingsValidation = [
     .withMessage('Volume must be between 0 and 100')
 ];
 
-// Routes
 router.get('/', auth, getSettings);
 router.put('/', auth, settingsValidation, handleValidationErrors, updateSettings);
 router.post('/reset', auth, resetSettings);

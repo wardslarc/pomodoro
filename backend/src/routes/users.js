@@ -1,22 +1,15 @@
-// src/routes/users.js
 const express = require('express');
 const router = express.Router();
 const Session = require('../models/Session');
 const User = require('../models/User');
+const auth = require('../middleware/auth');
 
-// Import your existing auth middleware - make sure the path is correct
-const auth = require('../middleware/auth'); // 👈 This should point to your auth file
-
-// GET /api/users/leaderboard - Get leaderboard data
-router.get('/leaderboard', auth, async (req, res) => {
+router.get('/leaderboard', auth, async (req, res, next) => {
   try {
-    console.log('🏆 Fetching leaderboard data...');
-
-    // Aggregate user data for leaderboard
     const leaderboardData = await Session.aggregate([
       {
         $match: {
-          sessionType: 'work' // Only count work sessions for productivity
+          sessionType: 'work'
         }
       },
       {
@@ -49,20 +42,17 @@ router.get('/leaderboard', auth, async (req, res) => {
         }
       },
       {
-        $sort: { totalFocusMinutes: -1 } // Sort by total focus time
+        $sort: { totalFocusMinutes: -1 }
       },
       {
-        $limit: 50 // Limit to top 50 users
+        $limit: 50
       }
     ]);
 
-    // Calculate streaks and productivity scores
     const usersWithStats = await Promise.all(
       leaderboardData.map(async (userData, index) => {
-        // Calculate current streak
         const streak = await calculateUserStreak(userData._id);
         
-        // Calculate productivity score (0-100)
         const totalSessions = await Session.countDocuments({ 
           userId: userData._id 
         });
@@ -79,8 +69,6 @@ router.get('/leaderboard', auth, async (req, res) => {
       })
     );
 
-    console.log(`✅ Leaderboard data fetched: ${usersWithStats.length} users`);
-
     res.json({
       success: true,
       data: {
@@ -89,16 +77,10 @@ router.get('/leaderboard', auth, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error fetching leaderboard:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch leaderboard data',
-      error: error.message
-    });
+    next(error);
   }
 });
 
-// Helper function to calculate user streak
 async function calculateUserStreak(userId) {
   try {
     const sessions = await Session.find({ 
@@ -118,7 +100,6 @@ async function calculateUserStreak(userId) {
       uniqueDates.add(dateKey);
     });
 
-    // Calculate streak by checking consecutive days from today backwards
     while (true) {
       const dateString = currentDate.toDateString();
       if (uniqueDates.has(dateString)) {
@@ -132,7 +113,6 @@ async function calculateUserStreak(userId) {
 
     return streak;
   } catch (error) {
-    console.error('Error calculating streak:', error);
     return 0;
   }
 }

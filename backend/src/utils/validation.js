@@ -1,27 +1,20 @@
 const { validationResult } = require('express-validator');
 const { ApiResponse } = require('./apiResponse');
 
-/**
- * Custom validation rules
- */
 const customValidators = {
-  // Validate MongoDB ObjectId
   isObjectId: (value) => {
     if (!value) return false;
     return /^[0-9a-fA-F]{24}$/.test(value);
   },
 
-  // Validate session type
   isSessionType: (value) => {
     return ['work', 'break', 'longBreak'].includes(value);
   },
 
-  // Validate notification sound
   isNotificationSound: (value) => {
     return ['bell', 'chime', 'beep', 'none'].includes(value);
   },
 
-  // Validate array of tags
   isTagsArray: (value) => {
     if (!Array.isArray(value)) return false;
     return value.every(tag => 
@@ -32,11 +25,7 @@ const customValidators = {
   },
 };
 
-/**
- * Custom sanitizers
- */
 const customSanitizers = {
-  // Sanitize email
   normalizeEmail: (value) => {
     if (typeof value === 'string') {
       return value.toLowerCase().trim();
@@ -44,7 +33,6 @@ const customSanitizers = {
     return value;
   },
 
-  // Sanitize string (trim and remove extra spaces)
   normalizeString: (value) => {
     if (typeof value === 'string') {
       return value.trim().replace(/\s+/g, ' ');
@@ -52,7 +40,6 @@ const customSanitizers = {
     return value;
   },
 
-  // Sanitize array (remove empty values and trim)
   normalizeArray: (value) => {
     if (Array.isArray(value)) {
       return value
@@ -63,9 +50,6 @@ const customSanitizers = {
   },
 };
 
-/**
- * Enhanced validation result handler
- */
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   

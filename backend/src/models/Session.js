@@ -16,7 +16,7 @@ const sessionSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 1,
-    max: 180 // 3 hours max
+    max: 180
   },
   completedAt: {
     type: Date,
@@ -51,17 +51,14 @@ const sessionSchema = new mongoose.Schema({
   }
 });
 
-// Compound indexes for efficient queries
 sessionSchema.index({ userId: 1, completedAt: -1 });
 sessionSchema.index({ userId: 1, sessionType: 1, completedAt: -1 });
 sessionSchema.index({ completedAt: 1, sessionType: 1 });
 
-// Virtual for formatted date
 sessionSchema.virtual('formattedDate').get(function() {
   return this.completedAt.toISOString().split('T')[0];
 });
 
-// Static method to get user's total focus time
 sessionSchema.statics.getTotalFocusTime = function(userId, startDate = null) {
   const match = { userId, sessionType: 'work' };
   if (startDate) {
@@ -74,27 +71,20 @@ sessionSchema.statics.getTotalFocusTime = function(userId, startDate = null) {
   ]);
 };
 
-// FIXED: Instance method to check if session has reflection - remove circular dependency
 sessionSchema.methods.hasReflection = async function() {
-  // Use mongoose.model() to get the Reflection model dynamically to avoid circular imports
   try {
     const reflection = await mongoose.model('Reflection').findOne({ sessionId: this._id });
     return !!reflection;
   } catch (error) {
-    // If Reflection model isn't available, return false
-    console.warn('Reflection model not available:', error.message);
     return false;
   }
 };
 
-// Pre-save middleware to validate data
 sessionSchema.pre('save', function(next) {
-  // Ensure completedAt is not in the future
   if (this.completedAt > new Date()) {
     this.completedAt = new Date();
   }
   
-  // Validate that break sessions are not too long
   if (this.sessionType !== 'work' && this.duration > 60) {
     next(new Error('Break sessions cannot be longer than 60 minutes'));
     return;
@@ -103,5 +93,4 @@ sessionSchema.pre('save', function(next) {
   next();
 });
 
-// FIXED: Check if model already exists before compiling to prevent OverwriteModelError
 module.exports = mongoose.models.Session || mongoose.model('Session', sessionSchema);

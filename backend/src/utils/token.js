@@ -3,12 +3,6 @@ const config = require('../config/env');
 const logger = require('./logger');
 
 class TokenUtils {
-  /**
-   * Generate JWT token
-   * @param {string} userId - User ID
-   * @param {Object} payload - Additional payload data
-   * @returns {string} JWT token
-   */
   static generateToken(userId, payload = {}) {
     try {
       const tokenPayload = {
@@ -27,11 +21,6 @@ class TokenUtils {
     }
   }
 
-  /**
-   * Verify JWT token
-   * @param {string} token - JWT token to verify
-   * @returns {Object} Decoded token payload
-   */
   static verifyToken(token) {
     try {
       return jwt.verify(token, config.jwt.secret);
@@ -48,20 +37,10 @@ class TokenUtils {
     }
   }
 
-  /**
-   * Decode token without verification (for inspection only)
-   * @param {string} token - JWT token to decode
-   * @returns {Object} Decoded token payload
-   */
   static decodeToken(token) {
     return jwt.decode(token);
   }
 
-  /**
-   * Extract token from Authorization header
-   * @param {string} authHeader - Authorization header value
-   * @returns {string|null} Extracted token or null
-   */
   static extractTokenFromHeader(authHeader) {
     if (!authHeader) return null;
 
@@ -73,21 +52,15 @@ class TokenUtils {
     return null;
   }
 
-  /**
-   * Check if token is about to expire (within threshold)
-   * @param {string} token - JWT token
-   * @param {number} thresholdMs - Threshold in milliseconds (default: 5 minutes)
-   * @returns {boolean} True if token is about to expire
-   */
   static isTokenExpiringSoon(token, thresholdMs = 5 * 60 * 1000) {
     try {
       const decoded = this.verifyToken(token);
       const now = Date.now();
-      const exp = decoded.exp * 1000; // Convert to milliseconds
+      const exp = decoded.exp * 1000;
       
       return (exp - now) <= thresholdMs;
     } catch (error) {
-      return true; // If we can't verify, consider it expiring
+      return true;
     }
   }
 }

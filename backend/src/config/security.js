@@ -11,7 +11,7 @@ const securityHeaders = helmet({
       imgSrc: ["'self'", "data:", "https:"],
     },
   },
-  crossOriginEmbedderPolicy: false, // Disable for API
+  crossOriginEmbedderPolicy: false,
 });
 
 // Rate limiting configuration
@@ -25,33 +25,26 @@ const createRateLimit = (windowMs, max, message) => {
     },
     standardHeaders: true,
     legacyHeaders: false,
-    // Skip rate limiting for certain conditions
-    skip: (req) => {
-      // Skip for health checks
-      if (req.url === '/health') return true;
-      // In development, you might want to skip
-      if (process.env.NODE_ENV === 'development') return false;
-      return false;
-    },
+    skip: (req) => req.url === '/health',
   });
 };
 
 // Specific rate limiters
 const authLimiter = createRateLimit(
-  15 * 60 * 1000, // 15 minutes
-  5, // 5 attempts
+  15 * 60 * 1000,
+  5,
   'Too many authentication attempts from this IP, please try again later.'
 );
 
 const apiLimiter = createRateLimit(
-  15 * 60 * 1000, // 15 minutes
-  100, // 100 requests
+  15 * 60 * 1000,
+  100,
   'Too many requests from this IP, please try again later.'
 );
 
 const strictLimiter = createRateLimit(
-  60 * 1000, // 1 minute
-  10, // 10 requests
+  60 * 1000,
+  10,
   'Too many requests from this IP, please slow down.'
 );
 

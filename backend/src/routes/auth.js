@@ -6,19 +6,16 @@ const { validateSignup, validateLogin } = require('../middleware/validation');
 
 const router = express.Router();
 
-// Generate JWT Token
 const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET || 'fallback-secret', {
-    expiresIn: '7d'
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN
   });
 };
 
-// Signup route
-router.post('/signup', validateSignup, async (req, res) => {
+router.post('/signup', validateSignup, async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -27,7 +24,6 @@ router.post('/signup', validateSignup, async (req, res) => {
       });
     }
 
-    // Create new user
     const user = new User({
       name,
       email,
@@ -36,7 +32,6 @@ router.post('/signup', validateSignup, async (req, res) => {
 
     await user.save();
 
-    // Generate token
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -53,21 +48,15 @@ router.post('/signup', validateSignup, async (req, res) => {
       message: 'User created successfully'
     });
   } catch (error) {
-    console.error('Signup error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error creating user'
-    });
+    next(error);
   }
 });
 
-// Login route
-router.post('/login', validateLogin, async (req, res) => {
+router.post('/login', validateLogin, async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Find user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -75,7 +64,6 @@ router.post('/login', validateLogin, async (req, res) => {
       });
     }
 
-    // Check password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -84,7 +72,16 @@ router.post('/login', validateLogin, async (req, res) => {
       });
     }
 
-    // Generate token
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account is deactivated'
+      });
+    }
+
+    user.lastLogin = new Date();
+    await user.save();
+
     const token = generateToken(user._id);
 
     res.json({
@@ -101,16 +98,11 @@ router.post('/login', validateLogin, async (req, res) => {
       message: 'Login successful'
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error during login'
-    });
+    next(error);
   }
 });
 
-// Get current user
-router.get('/me', auth, async (req, res) => {
+router.get('/me', auth, async (req, res, next) => {
   try {
     res.json({
       success: true,
@@ -124,27 +116,18 @@ router.get('/me', auth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching user data'
-    });
+    next(error);
   }
 });
 
-// Logout route
-router.post('/logout', auth, async (req, res) => {
+router.post('/logout', auth, async (req, res, next) => {
   try {
     res.json({
       success: true,
       message: 'Logout successful'
     });
   } catch (error) {
-    console.error('Logout error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error during logout'
-    });
+    next(error);
   }
 });
 

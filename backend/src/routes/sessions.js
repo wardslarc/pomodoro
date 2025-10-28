@@ -5,8 +5,7 @@ const Session = require('../models/Session');
 
 const router = express.Router();
 
-// Get user sessions
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, async (req, res, next) => {
   try {
     const { limit = 100, page = 1 } = req.query;
     
@@ -27,16 +26,11 @@ router.get('/', auth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching sessions:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching sessions'
-    });
+    next(error);
   }
 });
 
-// Create new session
-router.post('/', auth, validateSession, async (req, res) => {
+router.post('/', auth, validateSession, async (req, res, next) => {
   try {
     const { sessionType, duration, completedAt } = req.body;
 
@@ -57,16 +51,11 @@ router.post('/', auth, validateSession, async (req, res) => {
       message: 'Session saved successfully'
     });
   } catch (error) {
-    console.error('Error creating session:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error creating session'
-    });
+    next(error);
   }
 });
 
-// Delete session
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, async (req, res, next) => {
   try {
     const { id } = req.params;
     
@@ -87,11 +76,7 @@ router.delete('/:id', auth, async (req, res) => {
       message: 'Session deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting session:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting session'
-    });
+    next(error);
   }
 });
 

@@ -29,15 +29,13 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-// Production API URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://reflectivepomodoro.com';
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing session on mount
   useEffect(() => {
     const checkExistingSession = () => {
       try {
@@ -51,7 +49,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setToken(savedToken);
         }
       } catch (error) {
-        console.error("Error loading user session:", error);
         clearAuthData();
       } finally {
         setIsLoading(false);
@@ -68,8 +65,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(null);
   };
 
+  const getApiBaseUrl = () => {
+    // For development, use localhost; for production, use the domain
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:5000';
+    }
+    return API_BASE_URL;
+  };
+
   const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-    const response = await fetch(`${API_BASE_URL}/api/auth${endpoint}`, {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/auth${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -130,33 +136,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      console.log("🔍 DEBUG: Login function started");
-      console.log("🔍 DEBUG: API Base URL:", API_BASE_URL);
-      console.log("🔍 DEBUG: Making request to:", `${API_BASE_URL}/api/auth/login`);
-
-      // Basic validation
       if (!email || !password) {
-        console.error("❌ DEBUG: Validation failed - missing email or password");
         throw new Error("Email and password are required");
       }
 
-      console.log("🔍 DEBUG: Making API request...");
       const data = await apiRequest('/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
 
-      console.log("🔍 DEBUG: API Response received:", data);
-
       if (data.success) {
-        console.log("✅ DEBUG: Login successful in API!");
-        console.log("✅ DEBUG: Response data:", data);
-        
         const userData = data.data.user;
         const authToken = data.data.token;
-
-        console.log("✅ DEBUG: User data received:", userData);
-        console.log("✅ DEBUG: Auth token received:", authToken ? "Yes" : "No");
 
         const loggedInUser: User = {
           uid: userData._id || userData.id,
@@ -165,24 +156,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           createdAt: new Date(userData.createdAt),
         };
 
-        console.log("✅ DEBUG: Setting user in state and localStorage");
         localStorage.setItem('pomodoro_user', JSON.stringify(loggedInUser));
         localStorage.setItem('auth_token', authToken);
         
         setUser(loggedInUser);
         setToken(authToken);
-        
-        console.log("✅ DEBUG: Login process completed successfully!");
       } else {
-        console.error("❌ DEBUG: API returned success: false", data.message);
         throw new Error(data.message || "Login failed");
       }
     } catch (error: any) {
-      console.error("❌ DEBUG: Login error caught:", error);
-      console.error("❌ DEBUG: Error message:", error.message);
       throw new Error(error.message || "Login failed");
     } finally {
-      console.log("🔍 DEBUG: Setting isLoading to false");
       setIsLoading(false);
     }
   };
@@ -190,7 +174,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithGoogle = async () => {
     setIsLoading(true);
     try {
-      window.location.href = `${API_BASE_URL}/api/auth/google`;
+      const baseUrl = getApiBaseUrl();
+      window.location.href = `${baseUrl}/api/auth/google`;
       
       await new Promise(resolve => setTimeout(resolve, 1000));
       throw new Error("Google OAuth not fully implemented. Please use email/password for now.");

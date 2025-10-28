@@ -3,9 +3,6 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const Joi = require('joi');
 
-// Debug check — remove this after confirming it prints correctly
-console.log('✅ Loaded MONGODB_URI:', process.env.MONGODB_URI);
-
 // Define validation schema for environment variables
 const envVarsSchema = Joi.object({
   NODE_ENV: Joi.string()

@@ -12,7 +12,6 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// Signup validation rules
 const validateSignup = [
   body('name')
     .trim()
@@ -29,7 +28,6 @@ const validateSignup = [
   handleValidationErrors
 ];
 
-// Login validation rules
 const validateLogin = [
   body('email')
     .isEmail()
@@ -41,7 +39,6 @@ const validateLogin = [
   handleValidationErrors
 ];
 
-// Session validation rules
 const validateSession = [
   body('sessionType')
     .isIn(['work', 'break', 'longBreak'])
@@ -56,7 +53,6 @@ const validateSession = [
   handleValidationErrors
 ];
 
-// Reflection validation rules - accepts both MongoDB IDs and local session IDs
 const validateReflection = [
   body('sessionId')
     .notEmpty()
@@ -66,12 +62,11 @@ const validateReflection = [
         throw new Error('Session ID must be a string');
       }
       
-      // Allow both MongoDB ObjectIds and local session IDs
       const isMongoId = /^[0-9a-fA-F]{24}$/.test(value);
       const isLocalId = value.startsWith('local-');
       
       if (!isMongoId && !isLocalId) {
-        throw new Error('Invalid session ID format. Must be MongoDB ObjectId or local session ID');
+        throw new Error('Invalid session ID format');
       }
       
       return true;

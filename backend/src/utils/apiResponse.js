@@ -30,14 +30,10 @@ class ApiResponse {
   }
 }
 
-// Helper functions for common responses
 const responseHelpers = {
-  // Success responses
   created: (message, data) => ApiResponse.success(message, data),
   ok: (message, data) => ApiResponse.success(message, data),
   paginated: (message, data, pagination) => ApiResponse.paginated(message, data, pagination),
-  
-  // Error responses
   badRequest: (message = 'Bad Request') => ApiResponse.error(message),
   unauthorized: (message = 'Unauthorized') => ApiResponse.error(message),
   forbidden: (message = 'Forbidden') => ApiResponse.error(message),

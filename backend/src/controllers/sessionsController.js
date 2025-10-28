@@ -1,6 +1,5 @@
 const Session = require('../models/Session');
 
-// Get user sessions
 const getUserSessions = async (req, res) => {
   try {
     const { limit = 100, page = 1 } = req.query;
@@ -22,7 +21,6 @@ const getUserSessions = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching sessions:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching sessions'
@@ -30,12 +28,10 @@ const getUserSessions = async (req, res) => {
   }
 };
 
-// Create new session
 const createSession = async (req, res) => {
   try {
     const { sessionType, duration, completedAt } = req.body;
 
-    // Validate required fields
     if (!sessionType || !duration) {
       return res.status(400).json({
         success: false,
@@ -60,7 +56,6 @@ const createSession = async (req, res) => {
       message: 'Session saved successfully'
     });
   } catch (error) {
-    console.error('Error creating session:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating session'
@@ -68,7 +63,6 @@ const createSession = async (req, res) => {
   }
 };
 
-// Delete session
 const deleteSession = async (req, res) => {
   try {
     const { id } = req.params;
@@ -90,7 +84,6 @@ const deleteSession = async (req, res) => {
       message: 'Session deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting session:', error);
     res.status(500).json({
       success: false,
       message: 'Error deleting session'

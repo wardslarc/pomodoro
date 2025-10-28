@@ -3,11 +3,6 @@ const config = require('../config/env');
 const logger = require('./logger');
 
 class PasswordUtils {
-  /**
-   * Hash a password
-   * @param {string} password - Plain text password
-   * @returns {Promise<string>} Hashed password
-   */
   static async hashPassword(password) {
     try {
       if (!password || typeof password !== 'string') {
@@ -26,12 +21,6 @@ class PasswordUtils {
     }
   }
 
-  /**
-   * Compare plain text password with hashed password
-   * @param {string} password - Plain text password
-   * @param {string} hashedPassword - Hashed password
-   * @returns {Promise<boolean>} True if passwords match
-   */
   static async comparePassword(password, hashedPassword) {
     try {
       if (!password || !hashedPassword) {
@@ -45,11 +34,6 @@ class PasswordUtils {
     }
   }
 
-  /**
-   * Validate password strength
-   * @param {string} password - Password to validate
-   * @returns {Object} Validation result
-   */
   static validatePasswordStrength(password) {
     const requirements = {
       minLength: password.length >= 6,
@@ -70,11 +54,6 @@ class PasswordUtils {
     };
   }
 
-  /**
-   * Generate a random temporary password
-   * @param {number} length - Password length (default: 12)
-   * @returns {string} Random password
-   */
   static generateRandomPassword(length = 12) {
     const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
     let password = '';

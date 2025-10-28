@@ -6,12 +6,10 @@ const { validateReflection } = require('../middleware/validation');
 
 const router = express.Router();
 
-// Create reflection
-router.post('/', auth, validateReflection, async (req, res) => {
+router.post('/', auth, validateReflection, async (req, res, next) => {
   try {
     const { sessionId, learnings, createdAt } = req.body;
 
-    // Verify the session belongs to the user
     const session = await Session.findOne({
       _id: sessionId,
       userId: req.user._id
@@ -24,7 +22,6 @@ router.post('/', auth, validateReflection, async (req, res) => {
       });
     }
 
-    // Check if reflection already exists for this session
     const existingReflection = await Reflection.findOne({ sessionId });
     if (existingReflection) {
       return res.status(400).json({
@@ -50,16 +47,11 @@ router.post('/', auth, validateReflection, async (req, res) => {
       message: 'Reflection saved successfully'
     });
   } catch (error) {
-    console.error('Error creating reflection:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error creating reflection'
-    });
+    next(error);
   }
 });
 
-// Get reflections for user
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, async (req, res, next) => {
   try {
     const { limit = 50, page = 1 } = req.query;
     
@@ -81,16 +73,11 @@ router.get('/', auth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching reflections:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching reflections'
-    });
+    next(error);
   }
 });
 
-// Get reflection by session ID
-router.get('/session/:sessionId', auth, async (req, res) => {
+router.get('/session/:sessionId', auth, async (req, res, next) => {
   try {
     const { sessionId } = req.params;
 
@@ -113,16 +100,11 @@ router.get('/session/:sessionId', auth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching reflection:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching reflection'
-    });
+    next(error);
   }
 });
 
-// Update reflection
-router.put('/:id', auth, validateReflection, async (req, res) => {
+router.put('/:id', auth, validateReflection, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { learnings } = req.body;
@@ -148,16 +130,11 @@ router.put('/:id', auth, validateReflection, async (req, res) => {
       message: 'Reflection updated successfully'
     });
   } catch (error) {
-    console.error('Error updating reflection:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error updating reflection'
-    });
+    next(error);
   }
 });
 
-// Delete reflection
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -178,11 +155,7 @@ router.delete('/:id', auth, async (req, res) => {
       message: 'Reflection deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting reflection:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting reflection'
-    });
+    next(error);
   }
 });
 

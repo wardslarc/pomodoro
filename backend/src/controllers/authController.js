@@ -12,7 +12,6 @@ exports.register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -21,17 +20,14 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // Create user
     const user = await User.create({
       name,
       email,
       password
     });
 
-    // Create default settings for user
     await Settings.createDefaultSettings(user._id);
 
-    // Generate token
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -51,7 +47,6 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Check if user exists and password is correct
     const user = await User.findOne({ email }).select('+password');
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({
@@ -67,18 +62,20 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    // Update last login
     user.lastLogin = new Date();
     await user.save();
 
-    // Generate token
     const token = generateToken(user._id);
+
+    // Remove password from user object
+    const userWithoutPassword = user.toObject();
+    delete userWithoutPassword.password;
 
     res.json({
       success: true,
       message: 'Login successful',
       data: {
-        user: await User.findById(user._id), // Get user without password
+        user: userWithoutPassword,
         token
       }
     });

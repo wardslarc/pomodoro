@@ -66,7 +66,6 @@ const settingsSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Create default settings when user is created
 settingsSchema.statics.createDefaultSettings = async function(userId) {
   return await this.create({ userId });
 };

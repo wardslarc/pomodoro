@@ -5,7 +5,6 @@ exports.getSettings = async (req, res, next) => {
     let settings = await Settings.findOne({ userId: req.user.id });
 
     if (!settings) {
-      // Create default settings if they don't exist
       settings = await Settings.createDefaultSettings(req.user.id);
     }
 
