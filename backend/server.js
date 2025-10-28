@@ -9,6 +9,7 @@ const authRoutes = require('./src/routes/auth');
 const settingsRoutes = require('./src/routes/settings');
 const sessionsRoutes = require('./src/routes/sessions');
 const reflectionsRoutes = require('./src/routes/reflections');
+const usersRoutes = require('./src/routes/users'); // 👈 ADD THIS LINE
 
 // Import middleware
 const { apiLimiter } = require('./src/middleware/rateLimit');
@@ -88,6 +89,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/sessions', sessionsRoutes);
 app.use('/api/reflections', reflectionsRoutes);
+app.use('/api/users', usersRoutes); // 👈 ADD THIS LINE
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -120,6 +122,7 @@ app.listen(PORT, () => {
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
   console.log(`🔗 CORS enabled for: http://localhost:5173, http://localhost:3000`);
   console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+  console.log(`🏆 Leaderboard API: http://localhost:${PORT}/api/users/leaderboard`); // 👈 ADD THIS LINE
 });
 
 module.exports = app;

@@ -27,7 +27,12 @@ import {
   Flame,
   Star,
   Activity,
-  PieChart
+  PieChart,
+  Trophy,
+  Medal,
+  TrendingUp as TrendingUpIcon,
+  User,
+  Eye
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -49,6 +54,19 @@ interface ReflectionData {
   session?: SessionData;
 }
 
+interface LeaderboardUser {
+  id: string;
+  name: string;
+  email: string;
+  rank: number;
+  totalFocusMinutes: number;
+  completedPomodoros: number;
+  currentStreak: number;
+  productivityScore: number;
+  avatar?: string;
+  isCurrentUser?: boolean;
+}
+
 // Backend API URL
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -64,6 +82,77 @@ const Dashboard: React.FC<DashboardProps> = () => {
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardUser[]>([]);
+
+  // Load leaderboard data from backend
+  const loadLeaderboardData = async () => {
+    if (!user || !token) return;
+
+    try {
+      console.log('🏆 Loading leaderboard data from backend...');
+      
+      const response = await fetch(`${API_BASE_URL}/api/users/leaderboard`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load leaderboard: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        const leaderboardUsers: LeaderboardUser[] = data.data.users.map((userData: any, index: number) => ({
+          id: userData._id || userData.id,
+          name: userData.name,
+          email: userData.email,
+          rank: index + 1,
+          totalFocusMinutes: userData.totalFocusMinutes || 0,
+          completedPomodoros: userData.completedPomodoros || 0,
+          currentStreak: userData.currentStreak || 0,
+          productivityScore: userData.productivityScore || 0,
+          avatar: userData.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || "U",
+          isCurrentUser: userData._id === user.uid || userData.id === user.uid
+        }));
+
+        setLeaderboardData(leaderboardUsers);
+        console.log('✅ Leaderboard data loaded:', leaderboardUsers.length, 'users');
+      } else {
+        throw new Error(data.message || 'Failed to load leaderboard');
+      }
+    } catch (error) {
+      console.error('❌ Error loading leaderboard data:', error);
+      // Fallback: create leaderboard from available sessions data
+      createLeaderboardFromSessions();
+    }
+  };
+
+  // Fallback: Create leaderboard from sessions data (for development)
+  const createLeaderboardFromSessions = () => {
+    if (!user) return;
+
+    console.log('📊 Creating leaderboard from sessions data...');
+    
+    // For now, we'll create a simple leaderboard with just the current user
+    // In a real app, you'd have multiple users from the backend
+    const currentUserStats: LeaderboardUser = {
+      id: user.uid,
+      name: user.name,
+      email: user.email,
+      rank: 1,
+      totalFocusMinutes: sessions.filter(s => s.sessionType === 'work').reduce((total, session) => total + session.duration, 0),
+      completedPomodoros: sessions.filter(s => s.sessionType === 'work').length,
+      currentStreak: streakDays,
+      productivityScore: Math.min(100, Math.round((sessions.filter(s => s.sessionType === 'work').length / Math.max(1, sessions.length)) * 100)),
+      avatar: user.name?.split(' ').map(n => n[0]).join('').toUpperCase() || "U",
+      isCurrentUser: true
+    };
+
+    setLeaderboardData([currentUserStats]);
+  };
 
   // Load data from database
   const loadDashboardData = async () => {
@@ -83,7 +172,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
       console.log('📊 Loading dashboard data from backend...');
 
-      // Load sessions from database - FIXED: Use correct backend URL
+      // Load sessions from database
       const sessionsResponse = await fetch(`${API_BASE_URL}/api/sessions?limit=200`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -117,7 +206,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
         calculateDashboardStats(dbSessions);
       }
 
-      // Load reflections from database - FIXED: Use correct backend URL
+      // Load reflections from database
       try {
         const reflectionsResponse = await fetch(`${API_BASE_URL}/api/reflections?limit=10`, {
           headers: {
@@ -150,6 +239,9 @@ const Dashboard: React.FC<DashboardProps> = () => {
         console.log('Reflections not available:', reflectionsError);
       }
 
+      // Load leaderboard data
+      await loadLeaderboardData();
+
     } catch (error) {
       console.error('❌ Error loading dashboard data:', error);
       // Fallback to localStorage data if available
@@ -177,6 +269,10 @@ const Dashboard: React.FC<DashboardProps> = () => {
         setSessions(localSessions);
         calculateDashboardStats(localSessions);
         setRecentReflections([]); // Local storage doesn't store reflections
+        
+        // Create leaderboard from local data
+        createLeaderboardFromSessions();
+        
         console.log('✅ Local data loaded:', localSessions.length, 'sessions');
       } else {
         console.log('No local data found');
@@ -290,6 +386,9 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
   // Calculate productivity score (0-100)
   const productivityScore = Math.min(100, Math.round((workSessions.length / Math.max(1, sessions.length)) * 100));
+
+  // Get current user's rank
+  const currentUserRank = leaderboardData.find(user => user.isCurrentUser)?.rank || 0;
 
   if (loading) {
     return (
@@ -434,7 +533,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
             <Card>
               <CardHeader className="pb-4">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 h-14">
+                  <TabsList className="grid w-full grid-cols-4 h-14">
                     <TabsTrigger value="overview" className="flex items-center gap-3 text-base">
                       <BarChart3 className="h-5 w-5" />
                       <span>Overview</span>
@@ -442,6 +541,10 @@ const Dashboard: React.FC<DashboardProps> = () => {
                     <TabsTrigger value="analytics" className="flex items-center gap-3 text-base">
                       <TrendingUp className="h-5 w-5" />
                       <span>Analytics</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="leaderboard" className="flex items-center gap-3 text-base">
+                      <Trophy className="h-5 w-5" />
+                      <span>Leaderboard</span>
                     </TabsTrigger>
                     <TabsTrigger value="insights" className="flex items-center gap-3 text-base">
                       <Lightbulb className="h-5 w-5" />
@@ -644,6 +747,142 @@ const Dashboard: React.FC<DashboardProps> = () => {
                     </div>
                   </TabsContent>
 
+                  {/* Leaderboard Tab */}
+                  <TabsContent value="leaderboard" className="space-y-6 mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Trophy className="h-5 w-5 text-primary" />
+                          Productivity Leaderboard
+                        </CardTitle>
+                        <CardDescription>Compare your progress with other focused users</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-6">
+                          {/* Top 3 Winners - Only show if we have at least 3 users */}
+                          {leaderboardData.length >= 3 && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                              {leaderboardData.slice(0, 3).map((user, index) => (
+                                <div 
+                                  key={user.id}
+                                  className={`relative p-6 rounded-xl text-center ${
+                                    index === 0 
+                                      ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white scale-105 shadow-lg' 
+                                      : index === 1
+                                      ? 'bg-gradient-to-br from-gray-400 to-gray-600 text-white'
+                                      : 'bg-gradient-to-br from-amber-700 to-amber-900 text-white'
+                                  }`}
+                                >
+                                  <div className="absolute -top-3 -left-3">
+                                    {index === 0 && <Crown className="h-8 w-8 text-yellow-300" />}
+                                    {index === 1 && <Medal className="h-8 w-8 text-gray-300" />}
+                                    {index === 2 && <Medal className="h-8 w-8 text-amber-300" />}
+                                  </div>
+                                  <div className="text-4xl font-bold mb-2">#{user.rank}</div>
+                                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 text-lg font-bold">
+                                    {user.avatar}
+                                  </div>
+                                  <div className="font-bold text-lg mb-1">{user.name}</div>
+                                  <div className="text-sm opacity-90">{user.totalFocusMinutes}m focused</div>
+                                  <div className="text-xs mt-2">{user.completedPomodoros} pomodoros</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Leaderboard Table */}
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-12 gap-4 px-4 py-2 bg-muted/30 rounded-lg font-semibold text-sm">
+                              <div className="col-span-1">Rank</div>
+                              <div className="col-span-5">User</div>
+                              <div className="col-span-2 text-center">Focus Time</div>
+                              <div className="col-span-2 text-center">Pomodoros</div>
+                              <div className="col-span-2 text-center">Streak</div>
+                            </div>
+                            
+                            {leaderboardData.length > 0 ? (
+                              leaderboardData.map((user) => (
+                                <div 
+                                  key={user.id}
+                                  className={`grid grid-cols-12 gap-4 px-4 py-3 rounded-lg border transition-all ${
+                                    user.isCurrentUser 
+                                      ? 'bg-primary/10 border-primary/20 shadow-md' 
+                                      : 'bg-card hover:bg-muted/30'
+                                  }`}
+                                >
+                                  <div className="col-span-1 flex items-center">
+                                    <span className="font-bold text-lg">#{user.rank}</span>
+                                  </div>
+                                  <div className="col-span-5 flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center text-xs font-bold">
+                                      {user.avatar}
+                                    </div>
+                                    <div>
+                                      <div className="font-medium flex items-center gap-2">
+                                        {user.name}
+                                        {user.isCurrentUser && (
+                                          <Badge variant="secondary" className="text-xs">You</Badge>
+                                        )}
+                                      </div>
+                                      {/* REMOVED EMAIL DISPLAY - Privacy Fix */}
+                                      <div className="text-xs text-muted-foreground">
+                                        {user.completedPomodoros} sessions • {user.productivityScore} pts
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="col-span-2 flex items-center justify-center font-semibold">
+                                    {user.totalFocusMinutes}m
+                                  </div>
+                                  <div className="col-span-2 flex items-center justify-center">
+                                    <Badge variant="outline">{user.completedPomodoros}</Badge>
+                                  </div>
+                                  <div className="col-span-2 flex items-center justify-center gap-1">
+                                    <Flame className="h-4 w-4 text-orange-500" />
+                                    <span className="font-medium">{user.currentStreak}d</span>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center py-8">
+                                <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                <p className="text-muted-foreground">No leaderboard data available</p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Complete more Pomodoro sessions to appear on the leaderboard
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Current User Stats */}
+                          {currentUserRank > 0 && (
+                            <Card className="bg-primary/5 border-primary/20">
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <Trophy className="h-6 w-6 text-primary" />
+                                    <div>
+                                      <div className="font-semibold">Your Current Rank: #{currentUserRank}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {currentUserRank === 1 
+                                          ? "You're in first place! 🎉" 
+                                          : `Keep going! You're making great progress.`
+                                        }
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <Button variant="outline" size="sm" className="gap-2">
+                                    <TrendingUpIcon className="h-4 w-4" />
+                                    View Progress
+                                  </Button>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
                   {/* Insights Tab */}
                   <TabsContent value="insights" className="space-y-6 mt-6">
                     <Card>
@@ -706,17 +945,17 @@ const Dashboard: React.FC<DashboardProps> = () => {
           </div>
 
           {/* Right Column - Sidebar */}
-          <div className="space-y-8">
-            {/* Calendar Card */}
-            <Card className="sticky top-8">
-              <CardHeader>
+          <div className="space-y-8 h-fit">
+            {/* Calendar Card - Fixed with proper sticky positioning and height constraints */}
+            <Card className="sticky top-8 overflow-hidden" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
+              <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2">
                   <CalendarIcon className="h-5 w-5 text-primary" />
                   Activity Calendar
                 </CardTitle>
                 <CardDescription>Your focus day history</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 12rem)' }}>
                 <div className="flex justify-center">
                   <Calendar
                     mode="single"
@@ -795,6 +1034,14 @@ const Dashboard: React.FC<DashboardProps> = () => {
                       {sessions.length > 0 ? Math.round((workSessions.length / sessions.length) * 100) : 0}%
                     </Badge>
                   </div>
+                  {currentUserRank > 0 && (
+                    <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg border border-primary/20">
+                      <span className="text-sm font-medium">Leaderboard Rank</span>
+                      <Badge variant="default" className="bg-primary">
+                        #{currentUserRank}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
