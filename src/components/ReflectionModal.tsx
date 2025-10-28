@@ -19,8 +19,12 @@ interface ReflectionModalProps {
   onSubmit?: (reflectionData: { learnings: string; sessionId: string | null }) => void;  
 }
 
-// Backend API URL
-const API_BASE_URL = 'http://localhost:5000';
+const getApiBaseUrl = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000';
+  }
+  return 'https://reflectivepomodoro.com';
+};
 
 const ReflectionModal: React.FC<ReflectionModalProps> = ({
   isOpen,
@@ -34,7 +38,6 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Focus textarea when modal opens
   useEffect(() => {
     if (isOpen && textareaRef.current) {
       setTimeout(() => {
@@ -44,7 +47,6 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
     }
   }, [isOpen]);
 
-  // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
       setLearnings("");
@@ -70,39 +72,29 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
     }
   };
 
-  // Extract session ID from object or string
   const extractSessionId = (sessionData: string | null): string | null => {
     if (!sessionData) return null;
     
     if (typeof sessionData === 'object' && sessionData !== null) {
-      // If it's an object, extract the sessionId property
       return (sessionData as any).sessionId || null;
     }
     
     return sessionData;
   };
 
-  // Save reflection to database
   const saveReflectionToDatabase = async (reflectionData: { learnings: string; sessionId: string | null }) => {
     try {
       if (!token) {
-        console.log('No auth token found, reflection saved locally only');
         return null;
       }
 
-      // Extract the actual session ID
       const actualSessionId = extractSessionId(reflectionData.sessionId);
       
       if (!actualSessionId) {
         throw new Error('Session ID is required to save reflection');
       }
 
-      console.log('💭 Sending reflection data:', {
-        sessionId: actualSessionId,
-        learnings: reflectionData.learnings,
-        tokenPresent: !!token
-      });
-
+      const API_BASE_URL = getApiBaseUrl();
       const payload = {
         sessionId: actualSessionId,
         learnings: reflectionData.learnings,
@@ -117,32 +109,26 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
         },
         body: JSON.stringify(payload)
       });
-
-      console.log('🔍 Response status:', response.status);
       
       if (!response.ok) {
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.errors?.[0]?.msg || errorMessage;
-          console.log('🔍 Error details:', errorData);
         } catch (parseError) {
-          console.log('🔍 Could not parse error response');
+          // Continue with default error message
         }
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      console.log('✅ Reflection save successful:', data);
       
       if (data.success) {
-        console.log('Reflection saved to database with ID:', data.data.reflection._id);
         return data.data.reflection._id;
       } else {
         throw new Error(data.message || 'Failed to save reflection');
       }
     } catch (error) {
-      console.error('❌ Error saving reflection to database:', error);
       throw error;
     }
   };
@@ -159,26 +145,14 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
     setError(null);
 
     try {
-      console.log('📝 Submitting reflection...');
-      console.log('Session ID:', sessionId);
-      console.log('Extracted Session ID:', extractSessionId(sessionId));
-      console.log('User logged in:', !!user);
-      console.log('Token present:', !!token);
-
-      // Save to database if user is logged in and has a valid session ID
       const extractedSessionId = extractSessionId(sessionId);
       if (user && extractedSessionId) {
         await saveReflectionToDatabase({
           learnings: learnings.trim(),
           sessionId: extractedSessionId
         });
-      } else if (!user) {
-        console.log('👤 User not logged in, saving locally only');
-      } else if (!extractedSessionId) {
-        console.log('⚠️ No session ID available');
       }
 
-      // Call the onSubmit prop with the reflection data
       if (onSubmit) {
         await onSubmit({
           learnings: learnings.trim(),
@@ -188,9 +162,7 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
 
       setLearnings("");
       onOpenChange(false);
-      console.log('✅ Reflection submitted successfully');
     } catch (error: any) {
-      console.error("❌ Failed to save reflection:", error);
       setError(error.message || "Failed to save reflection. Please try again.");
     } finally {
       setIsSaving(false);
@@ -245,14 +217,12 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
             />
           </div>
 
-          {/* Error message */}
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-800 font-medium">Error: {error}</p>
             </div>
           )}
 
-          {/* Data saving indicator */}
           <div className="text-xs text-muted-foreground">
             {user ? (
               <span className="text-green-600">✓ Reflections will be saved to your cloud account</span>

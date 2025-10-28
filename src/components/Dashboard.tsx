@@ -30,9 +30,7 @@ import {
   PieChart,
   Trophy,
   Medal,
-  TrendingUp as TrendingUpIcon,
-  User,
-  Eye
+  TrendingUp as TrendingUpIcon
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -67,8 +65,12 @@ interface LeaderboardUser {
   isCurrentUser?: boolean;
 }
 
-// Backend API URL
-const API_BASE_URL = 'http://localhost:5000';
+const getApiBaseUrl = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000';
+  }
+  return 'https://reflectivepomodoro.com';
+};
 
 const Dashboard: React.FC<DashboardProps> = () => {
   const { user, token } = useAuth();
@@ -84,13 +86,11 @@ const Dashboard: React.FC<DashboardProps> = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardUser[]>([]);
 
-  // Load leaderboard data from backend
   const loadLeaderboardData = async () => {
     if (!user || !token) return;
 
     try {
-      console.log('🏆 Loading leaderboard data from backend...');
-      
+      const API_BASE_URL = getApiBaseUrl();
       const response = await fetch(`${API_BASE_URL}/api/users/leaderboard`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -119,25 +119,17 @@ const Dashboard: React.FC<DashboardProps> = () => {
         }));
 
         setLeaderboardData(leaderboardUsers);
-        console.log('✅ Leaderboard data loaded:', leaderboardUsers.length, 'users');
       } else {
         throw new Error(data.message || 'Failed to load leaderboard');
       }
     } catch (error) {
-      console.error('❌ Error loading leaderboard data:', error);
-      // Fallback: create leaderboard from available sessions data
       createLeaderboardFromSessions();
     }
   };
 
-  // Fallback: Create leaderboard from sessions data (for development)
   const createLeaderboardFromSessions = () => {
     if (!user) return;
 
-    console.log('📊 Creating leaderboard from sessions data...');
-    
-    // For now, we'll create a simple leaderboard with just the current user
-    // In a real app, you'd have multiple users from the backend
     const currentUserStats: LeaderboardUser = {
       id: user.uid,
       name: user.name,
@@ -154,7 +146,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
     setLeaderboardData([currentUserStats]);
   };
 
-  // Load data from database
   const loadDashboardData = async () => {
     if (!user) {
       setLoading(false);
@@ -163,16 +154,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
     try {
       setRefreshing(true);
+      const API_BASE_URL = getApiBaseUrl();
       
       if (!token) {
-        console.log('No auth token found');
         loadLocalData();
         return;
       }
 
-      console.log('📊 Loading dashboard data from backend...');
-
-      // Load sessions from database
       const sessionsResponse = await fetch(`${API_BASE_URL}/api/sessions?limit=200`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -180,16 +168,11 @@ const Dashboard: React.FC<DashboardProps> = () => {
         }
       });
 
-      console.log('🔍 Sessions response status:', sessionsResponse.status);
-
       if (!sessionsResponse.ok) {
-        console.error('Failed to load sessions:', sessionsResponse.status);
         throw new Error(`Failed to load sessions: ${sessionsResponse.status}`);
       }
 
       const sessionsData = await sessionsResponse.json();
-      console.log('✅ Sessions loaded:', sessionsData.data?.sessions?.length || 0);
-
       let dbSessions: SessionData[] = [];
       let dbReflections: ReflectionData[] = [];
 
@@ -206,7 +189,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
         calculateDashboardStats(dbSessions);
       }
 
-      // Load reflections from database
       try {
         const reflectionsResponse = await fetch(`${API_BASE_URL}/api/reflections?limit=10`, {
           headers: {
@@ -214,8 +196,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
             'Content-Type': 'application/json'
           }
         });
-
-        console.log('🔍 Reflections response status:', reflectionsResponse.status);
 
         if (reflectionsResponse.ok) {
           const reflectionsData = await reflectionsResponse.json();
@@ -230,21 +210,15 @@ const Dashboard: React.FC<DashboardProps> = () => {
             }));
 
             setRecentReflections(dbReflections);
-            console.log('✅ Reflections loaded:', dbReflections.length);
           }
-        } else {
-          console.log('No reflections found or error loading reflections');
         }
       } catch (reflectionsError) {
-        console.log('Reflections not available:', reflectionsError);
+        // Continue without reflections
       }
 
-      // Load leaderboard data
       await loadLeaderboardData();
 
     } catch (error) {
-      console.error('❌ Error loading dashboard data:', error);
-      // Fallback to localStorage data if available
       loadLocalData();
     } finally {
       setLoading(false);
@@ -252,10 +226,8 @@ const Dashboard: React.FC<DashboardProps> = () => {
     }
   };
 
-  // Fallback to localStorage data
   const loadLocalData = () => {
     try {
-      console.log('📱 Loading data from localStorage...');
       const savedTimer = localStorage.getItem("pomodoroTimer");
       if (savedTimer) {
         const timerState = JSON.parse(savedTimer);
@@ -268,29 +240,18 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
         setSessions(localSessions);
         calculateDashboardStats(localSessions);
-        setRecentReflections([]); // Local storage doesn't store reflections
-        
-        // Create leaderboard from local data
+        setRecentReflections([]);
         createLeaderboardFromSessions();
-        
-        console.log('✅ Local data loaded:', localSessions.length, 'sessions');
-      } else {
-        console.log('No local data found');
       }
     } catch (error) {
-      console.error('Error loading local data:', error);
+      // Handle error silently
     }
   };
 
-  // Calculate all dashboard statistics
   const calculateDashboardStats = (sessionsData: SessionData[]) => {
-    console.log('📈 Calculating dashboard stats for', sessionsData.length, 'sessions');
-    
-    // Total completed pomodoros (work sessions)
     const workSessions = sessionsData.filter(s => s.sessionType === 'work');
     setCompletedPomodoros(workSessions.length);
 
-    // Weekly stats calculation
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
@@ -311,11 +272,9 @@ const Dashboard: React.FC<DashboardProps> = () => {
       }
     });
 
-    // Reorder to start with Monday instead of Sunday
     const reorderedWeekly = [...weeklyCounts.slice(1), weeklyCounts[0]];
     setWeeklyPomodoros(reorderedWeekly);
 
-    // Calendar data for heatmap
     const calendarMap: { [key: string]: number } = {};
     sessionsData.forEach((session) => {
       const dateKey = session.completedAt.toDateString();
@@ -329,13 +288,11 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
     setCalendarData(calendarDataArray);
 
-    // Streak calculation
     const uniqueDates = new Set();
     sessionsData.forEach(session => {
       uniqueDates.add(session.completedAt.toDateString());
     });
 
-    // Calculate streak by checking consecutive days from today backwards
     let streak = 0;
     let currentDate = new Date();
     currentDate.setHours(23, 59, 59, 999);
@@ -352,7 +309,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
     }
     
     setStreakDays(streak);
-    console.log('✅ Stats calculated - Pomodoros:', workSessions.length, 'Streak:', streak);
   };
 
   useEffect(() => {
@@ -365,7 +321,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  // Get today's sessions
   const getTodaySessions = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -383,11 +338,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
   const breakSessions = sessions.filter(s => s.sessionType === 'break');
   const longBreakSessions = sessions.filter(s => s.sessionType === 'longBreak');
   const totalFocusMinutes = workSessions.reduce((total, session) => total + session.duration, 0);
-
-  // Calculate productivity score (0-100)
   const productivityScore = Math.min(100, Math.round((workSessions.length / Math.max(1, sessions.length)) * 100));
-
-  // Get current user's rank
   const currentUserRank = leaderboardData.find(user => user.isCurrentUser)?.rank || 0;
 
   if (loading) {
@@ -411,7 +362,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-blue-950 p-4 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header Section */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-3">
             <div className="flex items-center gap-4">
@@ -448,11 +398,8 @@ const Dashboard: React.FC<DashboardProps> = () => {
           </div>
         </div>
 
-        {/* Main Dashboard Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Left Column - Overview Cards */}
           <div className="xl:col-span-2 space-y-8">
-            {/* Key Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 text-white">
                 <CardContent className="p-6">
@@ -529,7 +476,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
               </Card>
             </div>
 
-            {/* Tabs Navigation */}
             <Card>
               <CardHeader className="pb-4">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -552,10 +498,8 @@ const Dashboard: React.FC<DashboardProps> = () => {
                     </TabsTrigger>
                   </TabsList>
 
-                  {/* Overview Tab */}
                   <TabsContent value="overview" className="space-y-6 mt-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* Weekly Activity */}
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
@@ -588,7 +532,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
                         </CardContent>
                       </Card>
 
-                      {/* Session Distribution */}
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
@@ -625,7 +568,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
                       </Card>
                     </div>
 
-                    {/* Today's Activity */}
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -676,10 +618,8 @@ const Dashboard: React.FC<DashboardProps> = () => {
                     </Card>
                   </TabsContent>
 
-                  {/* Analytics Tab */}
                   <TabsContent value="analytics" className="space-y-6 mt-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* Productivity Score */}
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
@@ -716,7 +656,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
                         </CardContent>
                       </Card>
 
-                      {/* Session Trends */}
                       <Card>
                         <CardHeader>
                           <CardTitle className="flex items-center gap-2">
@@ -747,7 +686,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
                     </div>
                   </TabsContent>
 
-                  {/* Leaderboard Tab */}
                   <TabsContent value="leaderboard" className="space-y-6 mt-6">
                     <Card>
                       <CardHeader>
@@ -759,7 +697,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-6">
-                          {/* Top 3 Winners - Only show if we have at least 3 users */}
                           {leaderboardData.length >= 3 && (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                               {leaderboardData.slice(0, 3).map((user, index) => (
@@ -790,7 +727,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
                             </div>
                           )}
 
-                          {/* Leaderboard Table */}
                           <div className="space-y-3">
                             <div className="grid grid-cols-12 gap-4 px-4 py-2 bg-muted/30 rounded-lg font-semibold text-sm">
                               <div className="col-span-1">Rank</div>
@@ -824,7 +760,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
                                           <Badge variant="secondary" className="text-xs">You</Badge>
                                         )}
                                       </div>
-                                      {/* REMOVED EMAIL DISPLAY - Privacy Fix */}
                                       <div className="text-xs text-muted-foreground">
                                         {user.completedPomodoros} sessions • {user.productivityScore} pts
                                       </div>
@@ -853,7 +788,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
                             )}
                           </div>
 
-                          {/* Current User Stats */}
                           {currentUserRank > 0 && (
                             <Card className="bg-primary/5 border-primary/20">
                               <CardContent className="p-4">
@@ -883,7 +817,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
                     </Card>
                   </TabsContent>
 
-                  {/* Insights Tab */}
                   <TabsContent value="insights" className="space-y-6 mt-6">
                     <Card>
                       <CardHeader>
@@ -944,9 +877,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
             </Card>
           </div>
 
-          {/* Right Column - Sidebar */}
           <div className="space-y-8 h-fit">
-            {/* Calendar Card - Fixed with proper sticky positioning and height constraints */}
             <Card className="sticky top-8 overflow-hidden" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2">
@@ -1005,7 +936,6 @@ const Dashboard: React.FC<DashboardProps> = () => {
               </CardContent>
             </Card>
 
-            {/* Quick Stats */}
             <Card>
               <CardHeader>
                 <CardTitle>Quick Stats</CardTitle>
