@@ -9,7 +9,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  token: string | null; // NEW: Store token in state
+  token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
@@ -34,7 +34,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null); // NEW: Token state
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check for existing session on mount
@@ -46,10 +46,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (savedUser && savedToken) {
           const userData = JSON.parse(savedUser);
-          // Convert string date back to Date object
           userData.createdAt = new Date(userData.createdAt);
           setUser(userData);
-          setToken(savedToken); // NEW: Set token in state
+          setToken(savedToken);
         }
       } catch (error) {
         console.error("Error loading user session:", error);
@@ -62,7 +61,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkExistingSession();
   }, []);
 
-  // Helper function to clear all auth data
   const clearAuthData = () => {
     localStorage.removeItem('pomodoro_user');
     localStorage.removeItem('auth_token');
@@ -70,7 +68,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(null);
   };
 
-  // Helper function for API calls
   const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     const response = await fetch(`${API_BASE_URL}/api/auth${endpoint}`, {
       headers: {
@@ -91,7 +88,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signup = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Basic validation
       if (!email || !password || !name) {
         throw new Error("All fields are required");
       }
@@ -116,12 +112,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           createdAt: new Date(userData.createdAt),
         };
 
-        // Save to localStorage
         localStorage.setItem('pomodoro_user', JSON.stringify(newUser));
         localStorage.setItem('auth_token', authToken);
         
         setUser(newUser);
-        setToken(authToken); // NEW: Set token in state
+        setToken(authToken);
       } else {
         throw new Error(data.message || "Signup failed");
       }
@@ -135,19 +130,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      console.log("🔍 DEBUG: Login function started");
+      console.log("🔍 DEBUG: API Base URL:", API_BASE_URL);
+      console.log("🔍 DEBUG: Making request to:", `${API_BASE_URL}/api/auth/login`);
+
       // Basic validation
       if (!email || !password) {
+        console.error("❌ DEBUG: Validation failed - missing email or password");
         throw new Error("Email and password are required");
       }
 
+      console.log("🔍 DEBUG: Making API request...");
       const data = await apiRequest('/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
 
+      console.log("🔍 DEBUG: API Response received:", data);
+
       if (data.success) {
+        console.log("✅ DEBUG: Login successful in API!");
+        console.log("✅ DEBUG: Response data:", data);
+        
         const userData = data.data.user;
         const authToken = data.data.token;
+
+        console.log("✅ DEBUG: User data received:", userData);
+        console.log("✅ DEBUG: Auth token received:", authToken ? "Yes" : "No");
 
         const loggedInUser: User = {
           uid: userData._id || userData.id,
@@ -156,17 +165,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           createdAt: new Date(userData.createdAt),
         };
 
+        console.log("✅ DEBUG: Setting user in state and localStorage");
         localStorage.setItem('pomodoro_user', JSON.stringify(loggedInUser));
         localStorage.setItem('auth_token', authToken);
         
         setUser(loggedInUser);
-        setToken(authToken); // NEW: Set token in state
+        setToken(authToken);
+        
+        console.log("✅ DEBUG: Login process completed successfully!");
       } else {
+        console.error("❌ DEBUG: API returned success: false", data.message);
         throw new Error(data.message || "Login failed");
       }
     } catch (error: any) {
+      console.error("❌ DEBUG: Login error caught:", error);
+      console.error("❌ DEBUG: Error message:", error.message);
       throw new Error(error.message || "Login failed");
     } finally {
+      console.log("🔍 DEBUG: Setting isLoading to false");
       setIsLoading(false);
     }
   };
@@ -174,14 +190,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithGoogle = async () => {
     setIsLoading(true);
     try {
-      // Redirect to backend Google OAuth endpoint
       window.location.href = `${API_BASE_URL}/api/auth/google`;
       
-      // Note: The OAuth flow will redirect back to your frontend
-      // You'll need to handle the callback in your app
-      // This is a simplified version - you might want to use popup or different flow
-      
-      // For now, we'll simulate the process
       await new Promise(resolve => setTimeout(resolve, 1000));
       throw new Error("Google OAuth not fully implemented. Please use email/password for now.");
       
@@ -196,7 +206,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      // Call backend logout if needed (to blacklist token, etc.)
       if (token) {
         try {
           await apiRequest('/logout', {
@@ -207,7 +216,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
         } catch (error) {
           console.error("Error during backend logout:", error);
-          // Continue with frontend logout even if backend fails
         }
       }
 
@@ -222,7 +230,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   return (
     <AuthContext.Provider value={{ 
       user, 
-      token, // NEW: Provide token directly
+      token,
       isLoading, 
       login, 
       signup, 

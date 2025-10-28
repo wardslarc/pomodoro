@@ -217,7 +217,7 @@ const Timer = ({
     }
   };
 
-  const handleTimerComplete = useCallback(async () => {
+  const handleTimerComplete = useCallback(async (wasSkipped = false) => {
     if (isHandlingCompleteRef.current) {
       return;
     }
@@ -225,33 +225,36 @@ const Timer = ({
     isHandlingCompleteRef.current = true;
 
     try {
-      // Notification sound
-      if (settings.notificationSound !== "none") {
-        const audio = new Audio("/notification.mp3");
-        audio.volume = settings.volume / 100;
-        audio.play().catch(() => {});
-      }
-
-      // Browser notifications
-      if (Notification.permission === "granted") {
-        new Notification("Pomodoro Timer", {
-          body: `${getSessionLabel()} complete!`,
-        });
-      } else if (Notification.permission === "default") {
-        Notification.requestPermission();
-      }
-
       const currentSessionType = sessionTypeRef.current;
       const currentCompletedSessions = completedSessionsRef.current;
       
-      // Calculate duration
-      const durationInSeconds = currentSessionType === "work"
-        ? settings.workDuration * 60
-        : currentSessionType === "break"
-        ? settings.shortBreakDuration * 60
-        : settings.longBreakDuration * 60;
+      // Only play notification sound and show browser notifications for natural completion (not skipped)
+      if (!wasSkipped) {
+        // Notification sound
+        if (settings.notificationSound !== "none") {
+          const audio = new Audio("/notification.mp3");
+          audio.volume = settings.volume / 100;
+          audio.play().catch(() => {});
+        }
 
-      const durationInMinutes = Math.round(durationInSeconds / 60);
+        // Browser notifications
+        if (Notification.permission === "granted") {
+          new Notification("Pomodoro Timer", {
+            body: `${getSessionLabel()} complete!`,
+          });
+        } else if (Notification.permission === "default") {
+          Notification.requestPermission();
+        }
+      }
+
+      // Calculate duration based on how much time was actually completed
+      const actualDurationInSeconds = currentSessionType === "work"
+        ? (wasSkipped ? (settings.workDuration * 60 - timeLeft) : settings.workDuration * 60)
+        : currentSessionType === "break"
+        ? (wasSkipped ? (settings.shortBreakDuration * 60 - timeLeft) : settings.shortBreakDuration * 60)
+        : (wasSkipped ? (settings.longBreakDuration * 60 - timeLeft) : settings.longBreakDuration * 60);
+
+      const actualDurationInMinutes = Math.round(actualDurationInSeconds / 60);
 
       // Save session to database
       let newSessionId: string;
@@ -259,7 +262,7 @@ const Timer = ({
       if (user && token) {
         const dbSessionId = await saveSessionToDatabase({
           sessionType: currentSessionType,
-          duration: durationInMinutes
+          duration: actualDurationInMinutes
         });
         
         newSessionId = dbSessionId || `local-${Date.now()}`;
@@ -271,14 +274,14 @@ const Timer = ({
       const sessionData = {
         sessionId: newSessionId,
         sessionType: currentSessionType,
-        duration: durationInMinutes,
+        duration: actualDurationInMinutes,
       };
 
       onSessionComplete(sessionData);
 
       const newSession: SessionHistory = {
         sessionType: currentSessionType,
-        duration: durationInMinutes,
+        duration: actualDurationInMinutes,
         completedAt: new Date(),
         sessionId: newSessionId,
       };
@@ -291,7 +294,8 @@ const Timer = ({
         const newCompletedSessions = currentCompletedSessions + 1;
         setCompletedSessions(newCompletedSessions);
 
-        // Trigger reflection for work sessions
+        // ✅ ALWAYS show reflection after work sessions (even when skipped)
+        console.log("🔄 Showing reflection for work session (completed or skipped)");
         setCompletedSessionId(newSessionId);
         setShowReflection(true);
 
@@ -303,6 +307,10 @@ const Timer = ({
           setTimeLeft(settings.shortBreakDuration * 60);
         }
       } else {
+        // ❌ NEVER show reflection after break sessions (short or long)
+        console.log("⏸️ Break session completed - no reflection");
+        setShowReflection(false);
+        setCompletedSessionId(null);
         setSessionType("work");
         setTimeLeft(settings.workDuration * 60);
       }
@@ -317,7 +325,7 @@ const Timer = ({
     } finally {
       isHandlingCompleteRef.current = false;
     }
-  }, [settings, onSessionComplete, user, token]);
+  }, [settings, onSessionComplete, user, token, timeLeft]);
 
   // Timer effect
   useEffect(() => {
@@ -332,7 +340,7 @@ const Timer = ({
         });
       }, 1000);
     } else if (isRunning && timeLeft === 0) {
-      handleTimerComplete();
+      handleTimerComplete(false); // Natural completion
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -393,7 +401,7 @@ const Timer = ({
   };
   
   const skipTimer = () => {
-    handleTimerComplete();
+    handleTimerComplete(true); // Mark as skipped
   };
 
   const getSessionLabel = () => {
