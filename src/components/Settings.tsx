@@ -56,107 +56,140 @@ const Settings = ({ onClose }: SettingsProps) => {
   useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
+// Load settings from database when user logs in
+useEffect(() => {
+  const loadSettingsFromDatabase = async () => {
+    if (!user) return;
 
-  // Load settings from database when user logs in
-  useEffect(() => {
-    const loadSettingsFromDatabase = async () => {
-      if (!user) return;
-
-      try {
-        setIsLoading(true);
-        const token = localStorage.getItem('auth_token');
-        if (!token) return;
-
-        const response = await fetch('/api/settings', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to load settings');
-        }
-
-        const data = await response.json();
-        if (data.success && data.data.settings) {
-          // Update both context and local settings with database settings
-          updateSettings(data.data.settings);
-          setLocalSettings(data.data.settings);
-        }
-      } catch (error) {
-        console.error('Error loading settings from database:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadSettingsFromDatabase();
-  }, [user, updateSettings]);
-
-  // Save settings to database
-  const saveSettingsToDatabase = async (settingsData: any) => {
     try {
+      setIsLoading(true);
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        console.log('No auth token found, settings saved locally only');
+        console.log('No auth token found, skipping settings load');
         return;
       }
 
       const response = await fetch('/api/settings', {
-        method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(settingsData)
+        }
       });
 
+      // Handle 404 and other errors gracefully
+      if (response.status === 404) {
+        console.log('Settings endpoint not found');
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.log(`Settings load failed with status: ${response.status}`);
+        return;
+      }
+
+      // Check content type before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.log('Server returned non-JSON response for settings');
+        return;
       }
 
       const data = await response.json();
       
-      if (data.success) {
-        console.log('Settings saved to database');
-        return data.data.settings;
+      if (data.success && data.data?.settings) {
+        updateSettings(data.data.settings);
+        setLocalSettings(data.data.settings);
+        console.log('Settings loaded from database');
       } else {
-        throw new Error(data.message || 'Failed to save settings');
+        console.log('Settings data format invalid');
       }
     } catch (error) {
-      console.error('Error saving settings to database:', error);
-      throw error;
-    }
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-
-    try {
-      // Update context with local settings
-      updateSettings(localSettings);
-
-      // Save to database if user is logged in
-      if (user) {
-        await saveSettingsToDatabase(localSettings);
-      }
-
-      setShowSaveConfirmation(true);
-      
-      setTimeout(() => {
-        setShowSaveConfirmation(false);
-        if (onClose) {
-          setTimeout(() => onClose(), 100);
-        }
-      }, 1500);
-    } catch (error) {
-      console.error('Failed to save settings:', error);
-      // You could show an error message to the user here
+      console.log('Settings load failed:', error.message);
+      // Silent fail - use default settings
     } finally {
-      setIsSaving(false);
+      setIsLoading(false);
     }
   };
 
+  loadSettingsFromDatabase();
+}, [user, updateSettings]);
+
+// Save settings to database
+const saveSettingsToDatabase = async (settingsData: any) => {
+  try {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      console.log('No auth token found, settings saved locally only');
+      return;
+    }
+
+    const response = await fetch('/api/settings', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(settingsData)
+    });
+
+    // Handle 404 and other errors gracefully
+    if (response.status === 404) {
+      console.log('Settings API endpoint not found');
+      return;
+    }
+
+    if (!response.ok) {
+      console.log(`Settings save failed with status: ${response.status}`);
+      return;
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.log('Settings saved, but no JSON response received');
+      return;
+    }
+
+    const data = await response.json();
+    
+    if (data.success) {
+      console.log('Settings saved to database');
+      return data.data?.settings;
+    } else {
+      console.log('Settings save response indicated failure');
+      return;
+    }
+  } catch (error) {
+    console.log('Settings save failed:', error.message);
+    return;
+  }
+};
+
+const handleSave = async () => {
+  setIsSaving(true);
+
+  try {
+    // Update context with local settings
+    updateSettings(localSettings);
+
+    // Save to database if user is logged in (will fail gracefully if API issues)
+    if (user) {
+      await saveSettingsToDatabase(localSettings);
+    }
+
+    setShowSaveConfirmation(true);
+    
+    setTimeout(() => {
+      setShowSaveConfirmation(false);
+      if (onClose) {
+        setTimeout(() => onClose(), 100);
+      }
+    }, 1500);
+  } catch (error) {
+    console.log('Failed to save settings:', error);
+    // Even if save fails, settings are updated locally
+  } finally {
+    setIsSaving(false);
+  }
+};
   const handleReset = async () => {
     const defaultSettings = {
       workDuration: 25,

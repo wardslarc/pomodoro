@@ -14,7 +14,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -171,22 +170,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const loginWithGoogle = async () => {
-    setIsLoading(true);
-    try {
-      const baseUrl = getApiBaseUrl();
-      window.location.href = `${baseUrl}/api/auth/google`;
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      throw new Error("Google OAuth not fully implemented. Please use email/password for now.");
-      
-    } catch (error: any) {
-      throw new Error(error.message || "Google sign-in failed");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const logout = async () => {
     try {
       setIsLoading(true);
@@ -200,7 +183,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           });
         } catch (error) {
-          console.error("Error during backend logout:", error);
+          console.error("Error during backend logout.");
         }
       }
 
@@ -219,8 +202,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       isLoading, 
       login, 
       signup, 
-      logout, 
-      loginWithGoogle,
+      logout,
     }}>
       {children}
     </AuthContext.Provider>

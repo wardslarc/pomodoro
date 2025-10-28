@@ -8,8 +8,6 @@ import Auth from "./components/Auth";
 function AppContent() {
   const { user } = useAuth();
 
-  console.log("🔍 DEBUG: AppContent - user:", user);
-
   return (
     <Suspense fallback={<p>Loading...</p>}>
       <Routes>
@@ -17,7 +15,6 @@ function AppContent() {
         <Route path="/auth" element={
           !user ? <Auth /> : <Navigate to="/" replace />
         } />
-        {/* Redirect any unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

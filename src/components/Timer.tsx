@@ -27,16 +27,12 @@ interface SessionHistory {
   sessionId: string;
 }
 
-interface TimerState {
-  timeLeft: number;
-  isRunning: boolean;
-  sessionType: "work" | "break" | "longBreak";
-  completedSessions: number;
-  progress: number;
-  sessionHistory: SessionHistory[];
-}
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const getApiBaseUrl = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000';
+  }
+  return 'https://reflectivepomodoro.com';
+};
 
 const Timer = ({
   onSessionComplete = () => {},
@@ -53,21 +49,16 @@ const Timer = ({
   const [sessionHistory, setSessionHistory] = useState<SessionHistory[]>([]);
   const [showReflection, setShowReflection] = useState(false);
   const [completedSessionId, setCompletedSessionId] = useState<string | null>(null);
+  const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
   
-  // Refs for real-time timer and state management
   const sessionTypeRef = useRef(sessionType);
   const completedSessionsRef = useRef(completedSessions);
   const completionLockRef = useRef(false);
   const endTimeRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number>();
-  
-  // ✅ Reflection modal lock to prevent stacking
   const reflectionLockRef = useRef(false);
-
-  // ✅ Ref for handleTimerComplete to avoid dependency issues
   const handleTimerCompleteRef = useRef<((wasSkipped?: boolean) => void)>(() => {});
 
-  // Sync refs with state
   useEffect(() => {
     sessionTypeRef.current = sessionType;
     completedSessionsRef.current = completedSessions;
@@ -86,39 +77,28 @@ const Timer = ({
     }
   }, [settings.workDuration, settings.shortBreakDuration, settings.longBreakDuration, sessionType]);
 
-  // Define handleTimerComplete first
   const handleTimerComplete = useCallback(async (wasSkipped = false) => {
-    // ✅ Step 1: Instant lock at the very top
     if (completionLockRef.current || reflectionLockRef.current) {
-      console.log("⛔ Timer completion already in progress or reflection showing");
       return;
     }
     completionLockRef.current = true;
 
     const currentSessionType = sessionTypeRef.current;
     const currentCompletedSessions = completedSessionsRef.current;
-    console.log("🔄 Completing session:", currentSessionType, { wasSkipped });
 
     try {
-      // ✅ Step 2: No reflection for breaks (exit early)
       if (currentSessionType !== "work") {
-        console.log("⏸️ Break completed — no reflection modal will open.");
-
-        // Prepare next session
         setSessionType("work");
         setTimeLeft(settings.workDuration * 60);
         setIsRunning(settings.autoStartPomodoros);
 
-        // Unlock and return immediately
         completionLockRef.current = false;
         reflectionLockRef.current = false;
         return;
       }
 
-      // ✅ Step 3: Reflection only for work sessions
       reflectionLockRef.current = true;
 
-      // Notification sound and browser notifications (if not skipped)
       if (!wasSkipped) {
         if (settings.notificationSound !== "none") {
           const audio = new Audio("/notification.mp3");
@@ -135,24 +115,14 @@ const Timer = ({
         }
       }
 
-      // Calculate duration - FIXED: Ensure minimum duration of 1 minute
       const totalDuration = getTotalDuration();
       const actualDurationInSeconds = wasSkipped
-        ? Math.max(1, totalDuration - timeLeft) // Ensure at least 1 second
+        ? Math.max(1, totalDuration - timeLeft)
         : totalDuration;
-      const actualDurationInMinutes = Math.max(1, Math.round(actualDurationInSeconds / 60)); // Ensure at least 1 minute
+      const actualDurationInMinutes = Math.max(1, Math.round(actualDurationInSeconds / 60));
 
-      console.log('Duration calculation:', {
-        wasSkipped,
-        totalDuration,
-        timeLeft,
-        actualDurationInSeconds,
-        actualDurationInMinutes
-      });
-
-      // Save session
       let newSessionId = `local-${Date.now()}`;
-      if (user && token) {
+      if (user && token && cloudSyncEnabled) {
         const dbSessionId = await saveSessionToDatabase({
           sessionType: currentSessionType,
           duration: actualDurationInMinutes,
@@ -160,7 +130,6 @@ const Timer = ({
         if (dbSessionId) newSessionId = dbSessionId;
       }
 
-      // Log and update
       const newSession: SessionHistory = {
         sessionType: currentSessionType,
         duration: actualDurationInMinutes,
@@ -170,12 +139,9 @@ const Timer = ({
       setSessionHistory(prev => [...prev, newSession].slice(-50));
       setCompletedSessions(currentCompletedSessions + 1);
 
-      // ✅ Step 4: Open reflection modal
-      console.log("🟢 Opening reflection modal for work session");
       setShowReflection(true);
       setCompletedSessionId(newSessionId);
 
-      // Next session type
       if ((currentCompletedSessions + 1) % settings.sessionsBeforeLongBreak === 0) {
         setSessionType("longBreak");
         setTimeLeft(settings.longBreakDuration * 60);
@@ -187,31 +153,72 @@ const Timer = ({
       setIsRunning(false);
       endTimeRef.current = null;
     } catch (err) {
-      console.error("❌ Error in timer completion:", err);
+      // Handle error silently
     } finally {
-      // Unlock after delay to prevent double triggers
       setTimeout(() => {
         completionLockRef.current = false;
-        console.log("🔓 Completion lock released");
       }, 300);
     }
-  }, [settings, onSessionComplete, user, token, timeLeft, getTotalDuration]);
+  }, [settings, onSessionComplete, user, token, timeLeft, getTotalDuration, cloudSyncEnabled]);
 
-  // Update the ref when handleTimerComplete changes
   useEffect(() => {
     handleTimerCompleteRef.current = handleTimerComplete;
   }, [handleTimerComplete]);
 
-  // Load timer state from localStorage on mount AND load session history from database
+  const loadSessionsFromDatabase = async () => {
+    try {
+      if (!token) return;
+
+      const API_BASE_URL = getApiBaseUrl();
+      const response = await fetch(`${API_BASE_URL}/api/sessions?limit=100`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Handle rate limiting
+      if (response.status === 429) {
+        setCloudSyncEnabled(false);
+        return;
+      }
+
+      if (!response.ok) {
+        if (response.status === 401) return;
+        setCloudSyncEnabled(false);
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        const dbSessions: SessionHistory[] = data.data.sessions.map((session: any) => ({
+          sessionId: session._id || session.id,
+          sessionType: session.sessionType,
+          duration: session.duration,
+          completedAt: new Date(session.completedAt)
+        }));
+
+        setSessionHistory(dbSessions);
+        const workSessionsCount = dbSessions.filter(s => s.sessionType === 'work').length;
+        setCompletedSessions(workSessionsCount);
+        setCloudSyncEnabled(true);
+      } else {
+        setCloudSyncEnabled(false);
+      }
+    } catch (error) {
+      setCloudSyncEnabled(false);
+    }
+  };
+
   useEffect(() => {
     const loadTimerState = async () => {
       try {
         const saved = localStorage.getItem("pomodoroTimer");
         if (saved) {
-          const parsed: TimerState = JSON.parse(saved);
+          const parsed: any = JSON.parse(saved);
           
-          // Convert completedAt strings back to Date objects
-          const historyWithDates = parsed.sessionHistory.map(session => ({
+          const historyWithDates = parsed.sessionHistory.map((session: any) => ({
             ...session,
             completedAt: new Date(session.completedAt)
           }));
@@ -224,12 +231,11 @@ const Timer = ({
           setSessionHistory(historyWithDates);
         }
 
-        // Load session history from database if user is logged in
         if (user && token) {
           await loadSessionsFromDatabase();
         }
       } catch (error) {
-        console.error("Error loading timer state:", error);
+        // Handle error silently
       } finally {
         setIsLoading(false);
       }
@@ -238,64 +244,6 @@ const Timer = ({
     loadTimerState();
   }, [user, token]);
 
-  // Load sessions from database
-  const loadSessionsFromDatabase = async () => {
-    try {
-      if (!token) {
-        console.log('No authentication token available');
-        return;
-      }
-
-      console.log('Loading sessions from database...');
-
-      const response = await fetch(`${API_BASE_URL}/api/sessions?limit=100`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server error loading sessions:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        });
-        
-        if (response.status === 401) {
-          console.log('Authentication failed');
-          return;
-        }
-        throw new Error(`Failed to load sessions: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('Sessions loaded:', data);
-      
-      if (data.success) {
-        const dbSessions: SessionHistory[] = data.data.sessions.map((session: any) => ({
-          sessionId: session._id || session.id,
-          sessionType: session.sessionType,
-          duration: session.duration,
-          completedAt: new Date(session.completedAt)
-        }));
-
-        console.log('Processed sessions:', dbSessions);
-        setSessionHistory(dbSessions);
-        
-        // Update completed sessions count
-        const workSessionsCount = dbSessions.filter(s => s.sessionType === 'work').length;
-        setCompletedSessions(workSessionsCount);
-      } else {
-        console.error('Server returned error:', data.message);
-      }
-    } catch (error) {
-      console.error('Error loading sessions from database:', error);
-    }
-  };
-
-  // Update timer when settings change
   useEffect(() => {
     const totalDuration = getTotalDuration();
     setTimeLeft(totalDuration);
@@ -305,7 +253,6 @@ const Timer = ({
     reflectionLockRef.current = false;
   }, [settings.workDuration, settings.shortBreakDuration, settings.longBreakDuration, sessionType]);
 
-  // Real-time timer animation loop
   useEffect(() => {
     if (!isRunning) {
       if (animationFrameRef.current) {
@@ -315,7 +262,6 @@ const Timer = ({
       return;
     }
 
-    // Set end time when timer starts
     if (!endTimeRef.current) {
       endTimeRef.current = Date.now() + timeLeft * 1000;
     }
@@ -332,10 +278,9 @@ const Timer = ({
       setTimeLeft(timeRemaining);
 
       if (timeRemaining <= 0) {
-        // Timer completed
         setIsRunning(false);
         endTimeRef.current = null;
-        handleTimerCompleteRef.current(); // Use the ref instead of direct function
+        handleTimerCompleteRef.current();
       } else {
         animationFrameRef.current = requestAnimationFrame(updateTimer);
       }
@@ -349,21 +294,36 @@ const Timer = ({
         animationFrameRef.current = undefined;
       }
     };
-  }, [isRunning]); // Remove handleTimerComplete from dependencies
+  }, [isRunning]);
 
-  // Update progress percentage
   useEffect(() => {
     const totalDuration = getTotalDuration();
     const newProgress = ((totalDuration - timeLeft) / totalDuration) * 100;
     setProgress(newProgress);
   }, [timeLeft, getTotalDuration]);
 
-  // Reset endTimeRef when timeLeft changes externally (like reset)
   useEffect(() => {
     if (!isRunning) {
       endTimeRef.current = null;
     }
   }, [timeLeft, isRunning]);
+
+  // Live browser tab title functionality
+  useEffect(() => {
+    if (isLoading) return;
+
+    const formattedTime = formatTime(timeLeft);
+
+    if (isRunning) {
+      document.title = `⏱️ ${formattedTime} - ${sessionType === "work" ? "Focus" : "Break"} Time`;
+    } else {
+      document.title = `⏸️ ${formattedTime} - Paused (${sessionType === "work" ? "Focus" : "Break"})`;
+    }
+
+    return () => {
+      document.title = "Reflective Pomodoro";
+    };
+  }, [timeLeft, isRunning, sessionType, isLoading]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -371,26 +331,18 @@ const Timer = ({
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Save session to database - FIXED VERSION
   const saveSessionToDatabase = async (sessionData: {
     sessionType: "work" | "break" | "longBreak";
     duration: number;
   }) => {
     try {
-      if (!token || !user) {
-        console.log('No authentication token or user available');
-        return null;
-      }
+      if (!token || !user || !cloudSyncEnabled) return null;
 
-      // Validate duration before sending
-      if (sessionData.duration <= 0) {
-        console.warn('Invalid duration, skipping database save:', sessionData.duration);
-        return null;
-      }
+      if (sessionData.duration <= 0) return null;
 
-      // ✅ FIXED: Use user.uid instead of user.id
+      const API_BASE_URL = getApiBaseUrl();
       const payload = {
-        userId: user.uid, // This matches your AuthContext
+        userId: user.uid,
         sessionType: sessionData.sessionType,
         duration: sessionData.duration,
         completedAt: new Date().toISOString(),
@@ -398,8 +350,6 @@ const Timer = ({
         tags: [],
         efficiency: 3
       };
-
-      console.log('Saving session with payload:', payload);
 
       const response = await fetch(`${API_BASE_URL}/api/sessions`, {
         method: 'POST',
@@ -410,60 +360,35 @@ const Timer = ({
         body: JSON.stringify(payload)
       });
 
-      if (response.status === 401) {
-        console.log('Authentication failed');
+      // Handle rate limiting
+      if (response.status === 429) {
+        setCloudSyncEnabled(false);
         return null;
       }
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Server error response:', errorText);
-        
-        // Try to parse the error for better debugging
-        try {
-          const errorData = JSON.parse(errorText);
-          console.error('Parsed error details:', errorData);
-        } catch (e) {
-          console.error('Could not parse error response');
-        }
-        
-        throw new Error(`Failed to save session: ${response.status} - ${errorText}`);
-      }
+      if (response.status === 401) return null;
+
+      if (!response.ok) return null;
 
       const data = await response.json();
       
       if (data.success) {
-        console.log('Session saved successfully:', data.data.session);
         return data.data.session._id || data.data.session.id;
       } else {
-        throw new Error(data.message || 'Failed to save session');
+        return null;
       }
     } catch (error) {
-      console.error('Error saving session to database:', error);
+      setCloudSyncEnabled(false);
       return null;
     }
   };
 
-  // Request notification permission
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
   }, []);
 
-  // Debug auth hook
-  useEffect(() => {
-    console.log('Auth debug:', { 
-      user: user ? 'present' : 'missing', 
-      token: token ? 'present' : 'missing' 
-    });
-    if (user) {
-      console.log('User object:', user);
-      console.log('User ID (uid):', user.uid); // ✅ Changed from user.id to user.uid
-    }
-  }, [user, token]);
-
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.code === "Space") {
@@ -484,10 +409,8 @@ const Timer = ({
 
   const toggleTimer = () => {
     if (!isRunning) {
-      // Starting the timer - set end time based on current timeLeft
       endTimeRef.current = Date.now() + timeLeft * 1000;
     } else {
-      // Pausing the timer - clear end time
       endTimeRef.current = null;
     }
     setIsRunning(!isRunning);
@@ -500,33 +423,16 @@ const Timer = ({
     endTimeRef.current = null;
     completionLockRef.current = false;
     reflectionLockRef.current = false;
-    console.log("🔄 Timer reset");
   };
   
   const skipTimer = () => {
-    console.log("⏭️ Skipping current session");
-    
-    // Calculate the actual time spent before skipping
-    const totalDuration = getTotalDuration();
-    const timeSpent = Math.max(1, totalDuration - timeLeft); // Ensure at least 1 second
-    
-    console.log('Skip details:', {
-      totalDuration,
-      timeLeft,
-      timeSpent,
-      timeSpentInMinutes: Math.max(1, Math.round(timeSpent / 60))
-    });
-    
-    // Stop the animation frame immediately
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = undefined;
     }
     
-    // Clear end time
     endTimeRef.current = null;
     
-    // Use the ref to call handleTimerComplete
     setTimeout(() => {
       handleTimerCompleteRef.current(true);
     }, 0);
@@ -579,7 +485,6 @@ const Timer = ({
     learnings: string;
     sessionId: string | null;
   }) => {
-    console.log('Reflection saved:', reflectionData);
     setShowReflection(false);
     setCompletedSessionId(null);
   };
@@ -588,10 +493,8 @@ const Timer = ({
     setShowReflection(open);
     if (!open) {
       setCompletedSessionId(null);
-      // ✅ STEP 2: Release the reflection lock only after modal fully closes
       setTimeout(() => {
         reflectionLockRef.current = false;
-        console.log("🧹 Reflection modal fully unmounted and lock released");
       }, 100);
     }
   };
@@ -662,6 +565,11 @@ const Timer = ({
                   Sign in to save sessions to the cloud
                 </div>
               )}
+              {user && !cloudSyncEnabled && (
+                <div className="text-xs text-amber-600">
+                  Cloud sync temporarily unavailable
+                </div>
+              )}
             </div>
           </CardContent>
 
@@ -708,7 +616,7 @@ const Timer = ({
           <Card className="bg-white shadow-sm">
             <CardContent className="p-4">
               <h3 className="text-lg font-semibold text-slate-900 mb-3">
-                Session History {user && token ? "(Cloud Synced)" : "(Local Only)"}
+                Session History {user && cloudSyncEnabled ? "(Cloud Synced)" : user ? "(Local Only)" : "(Local Only)"}
               </h3>
               <div className="space-y-2 text-sm text-slate-600">
                 <div className="flex justify-between">
@@ -753,7 +661,6 @@ const Timer = ({
         </Card>
       </div>
 
-      {/* ✅ Only ONE ReflectionModal will ever be mounted at a time */}
       <ReflectionModal
         isOpen={showReflection}
         onOpenChange={handleReflectionOpenChange}
