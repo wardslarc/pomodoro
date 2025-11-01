@@ -104,6 +104,13 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
     const url = `${baseUrl}${endpoint}`;
     
     try {
+      console.log('🔄 Making API request:', {
+        url,
+        method: options.method,
+        headers: options.headers,
+        body: options.body ? JSON.parse(options.body as string) : undefined
+      });
+
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
@@ -112,22 +119,42 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
         ...options,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        
-        // Extract validation errors if they exist
-        if (errorData.errors && Array.isArray(errorData.errors)) {
-          const validationErrors = errorData.errors.map((err: any) => 
-            `${err.field}: ${err.message}`
-          ).join(', ');
-          throw new Error(`Validation failed: ${validationErrors}`);
-        }
-        
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      const responseText = await response.text();
+      console.log('📡 API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: responseText
+      });
+
+      let responseData;
+      try {
+        responseData = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('❌ Failed to parse response as JSON:', parseError);
+        responseData = {};
       }
 
-      return response.json();
+      if (!response.ok) {
+        console.error('❌ API Error Response:', responseData);
+        
+        // Extract validation errors if they exist
+        if (responseData.errors && Array.isArray(responseData.errors)) {
+          const validationErrors = responseData.errors
+            .filter((err: any) => err && (err.field || err.message))
+            .map((err: any) => `${err.field || 'unknown'}: ${err.message || 'Unknown error'}`)
+            .join(', ');
+          
+          if (validationErrors) {
+            throw new Error(`Validation failed: ${validationErrors}`);
+          }
+        }
+        
+        throw new Error(responseData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return responseData;
     } catch (error: any) {
+      console.error('❌ API Request Failed:', error);
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
         throw new Error(`Cannot connect to server. Please check your connection.`);
       }
@@ -149,7 +176,7 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
 
       // Validate session ID format
       if (!validateSessionId(actualSessionId)) {
-        throw new Error('Invalid session ID format');
+        throw new Error(`Invalid session ID format: ${actualSessionId}`);
       }
 
       // Validate learnings length
@@ -167,7 +194,7 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
         createdAt: new Date().toISOString()
       };
 
-      console.log('Saving reflection with payload:', payload);
+      console.log('💾 Saving reflection to database:', payload);
 
       const data = await apiRequest('/api/reflections', {
         method: 'POST',
@@ -178,12 +205,13 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
       });
       
       if (data.success) {
+        console.log('✅ Reflection saved successfully:', data.data.reflection);
         return data.data.reflection._id || data.data.reflection.id;
       } else {
         throw new Error(data.message || 'Failed to save reflection');
       }
     } catch (error) {
-      console.error('Error saving reflection:', error);
+      console.error('❌ Error saving reflection to database:', error);
       throw error;
     }
   };
@@ -207,29 +235,33 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
     try {
       const extractedSessionId = extractSessionId(sessionId);
       
-      console.log('Submitting reflection:', {
+      console.log('🚀 Starting reflection submission:', {
         hasUser: !!user,
         hasToken: !!token,
         sessionId: extractedSessionId,
-        learningsLength: learnings.trim().length
+        sessionIdValid: validateSessionId(extractedSessionId),
+        learningsLength: learnings.trim().length,
+        rawSessionId: sessionId
       });
 
       // Only save to database if user is logged in and we have a valid session ID
       if (user && token && extractedSessionId && validateSessionId(extractedSessionId)) {
-        console.log('Attempting to save to cloud...');
+        console.log('☁️ Attempting to save to cloud...');
         await saveReflectionToDatabase({
           learnings: learnings.trim(),
           sessionId: extractedSessionId
         });
-        console.log('Successfully saved to cloud');
+        console.log('✅ Successfully saved to cloud');
       } else {
-        console.log('Saving locally only:', {
-          reason: !user ? 'No user' : !token ? 'No token' : !extractedSessionId ? 'No session ID' : 'Invalid session ID'
+        console.log('💾 Saving locally only:', {
+          reason: !user ? 'No user' : !token ? 'No token' : !extractedSessionId ? 'No session ID' : 'Invalid session ID',
+          sessionId: extractedSessionId
         });
       }
 
       // Always call the onSubmit callback for local handling
       if (onSubmit) {
+        console.log('📝 Calling onSubmit callback');
         await onSubmit({
           learnings: learnings.trim(),
           sessionId: extractedSessionId
@@ -238,8 +270,9 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
 
       setLearnings("");
       onOpenChange(false);
+      console.log('🎉 Reflection process completed successfully');
     } catch (error: any) {
-      console.error('Error in handleSubmit:', error);
+      console.error('💥 Error in handleSubmit:', error);
       setError(error.message || "Failed to save reflection. Please try again.");
     } finally {
       setIsSaving(false);
@@ -247,6 +280,7 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
   };
 
   const handleSkip = () => {
+    console.log('⏭️ Skipping reflection');
     setLearnings("");
     setError(null);
     onOpenChange(false);
@@ -304,7 +338,7 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-800 font-medium">Error: {error}</p>
               <p className="text-xs text-red-600 mt-1">
-                If this continues, try refreshing the page or check your connection.
+                Check the browser console for detailed logs.
               </p>
             </div>
           )}
