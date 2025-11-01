@@ -17,7 +17,6 @@ interface SettingsContextType {
   settings: Settings;
   updateSettings: (newSettings: Partial<Settings>) => void;
   resetSettings: () => void;
-  // Add these to track API state
   isSyncing: boolean;
   lastSync: Date | null;
 }
@@ -43,7 +42,6 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { user } = useAuth();
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load settings when user changes or on mount
   useEffect(() => {
     const loadSettings = () => {
       try {
@@ -55,15 +53,12 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         const saved = localStorage.getItem(storageKey);
         if (saved) {
           const parsedSettings = JSON.parse(saved);
-          // Merge with defaults to ensure all fields exist
           const mergedSettings = { ...defaultSettings, ...parsedSettings };
           setSettings(mergedSettings);
         } else {
-          // Use default settings if nothing is saved
           setSettings(defaultSettings);
         }
       } catch (error) {
-        console.error('Error loading settings from localStorage:', error);
         setSettings(defaultSettings);
       } finally {
         setIsInitialized(true);
@@ -73,7 +68,6 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     loadSettings();
   }, [user]);
 
-  // Save to localStorage whenever settings change (with debouncing)
   useEffect(() => {
     if (!isInitialized) return;
 
@@ -87,16 +81,14 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         localStorage.setItem(storageKey, JSON.stringify(settings));
         setLastSync(new Date());
       } catch (error) {
-        console.error('Error saving settings to localStorage:', error);
+        // Silent fail for settings save
       }
     };
 
-    // Debounce the save to prevent too many writes
     const timeoutId = setTimeout(saveSettings, 500);
     return () => clearTimeout(timeoutId);
   }, [settings, user, isInitialized]);
 
-  // Apply dark mode when settings change
   useEffect(() => {
     if (settings.darkMode) {
       document.documentElement.classList.add('dark');
@@ -106,11 +98,6 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [settings.darkMode]);
 
   const updateSettings = (newSettings: Partial<Settings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
-  };
-
-  // Add this method to update settings without triggering localStorage save
-  const updateSettingsWithoutSave = (newSettings: Partial<Settings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
   };
 

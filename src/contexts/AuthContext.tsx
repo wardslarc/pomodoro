@@ -28,12 +28,7 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-// Get API URL from environment variable with fallback
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-
-if (!API_BASE_URL) {
-  console.warn('VITE_API_URL environment variable is not set. Using default URL.');
-}
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -53,7 +48,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setToken(savedToken);
         }
       } catch (error) {
-        console.error('Error restoring session:', error);
         clearAuthData();
       } finally {
         setIsLoading(false);
@@ -70,42 +64,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(null);
   };
 
-  const getApiBaseUrl = () => {
-    // Use the environment variable directly
-    return API_BASE_URL || 'https://reflectivepomodoro.com';
-  };
-
   const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-    const baseUrl = getApiBaseUrl();
+    const url = `${API_BASE_URL}/api/auth${endpoint}`;
     
-    // Validate that we have a base URL
-    if (!baseUrl) {
-      throw new Error('API base URL is not configured');
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
-    const url = `${baseUrl}/api/auth${endpoint}`;
-    
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-        ...options,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
-
-      return response.json();
-    } catch (error: any) {
-      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        throw new Error(`Cannot connect to server. Please check if the backend is running.`);
-      }
-      throw error;
-    }
+    return response.json();
   };
 
   const signup = async (name: string, email: string, password: string) => {
@@ -201,13 +176,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           });
         } catch (error) {
-          console.error("Error during backend logout:", error);
+          // Silent fail for logout
         }
       }
 
       clearAuthData();
-    } catch (error: any) {
-      throw new Error("Logout failed");
     } finally {
       setIsLoading(false);
     }

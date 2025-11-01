@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Settings as SettingsIcon, BarChart3, LogOut, Lock, Shield, FileText, Ma
 import Timer from "./Timer";
 import Dashboard from "./Dashboard";
 import Settings from "./Settings";
-import ReflectionModal from "./ReflectionModal";
+import ReflectionContent from "./ReflectionContent";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import {
@@ -18,20 +18,27 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-type ModalType = "dashboard" | "settings" | "privacy" | "terms" | "contact" | "loginPrompt" | "logoutConfirm" | "donate" | null;
+type ModalType = 
+  | "dashboard" 
+  | "settings" 
+  | "privacy" 
+  | "terms" 
+  | "contact" 
+  | "loginPrompt" 
+  | "logoutConfirm" 
+  | "donate" 
+  | "reflection"
+  | null;
 
 const Home = () => {
   const [activeTab, setActiveTab] = useState("timer");
   const [openModal, setOpenModal] = useState<ModalType>(null);
-  const [showReflection, setShowReflection] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   const { user, logout } = useAuth();
   const { settings } = useSettings();
-
   const navigate = useNavigate();
 
-  // Timer completion - FIXED: Accept the full session data object
   const handleTimerComplete = (sessionData: {
     sessionId: string;
     sessionType: "work" | "break" | "longBreak";
@@ -39,19 +46,20 @@ const Home = () => {
   }) => {
     if (user) {
       setCurrentSessionId(sessionData.sessionId);
-      setShowReflection(true);
+      setOpenModal("reflection");
     } else {
       setOpenModal("loginPrompt");
     }
   };
 
-  // Reflection submit
-  const handleReflectionSubmit = () => {
-    setShowReflection(false);
+  const handleReflectionSubmit = async (reflectionData: {
+    learnings: string;
+    sessionId: string | null;
+  }) => {
+    setOpenModal(null);
     setCurrentSessionId(null);
   };
 
-  // Protected features - show alert if user isn't logged in
   const handleProtectedFeature = (feature: "dashboard" | "settings") => {
     if (!user) {
       alert("Please log in first to access this feature.");
@@ -60,64 +68,75 @@ const Home = () => {
     setOpenModal(feature);
   };
 
-  // Handle logout confirmation
   const handleLogoutClick = () => {
     setOpenModal("logoutConfirm");
   };
 
-  // Handle confirmed logout
   const handleConfirmLogout = () => {
     logout();
     setOpenModal(null);
   };
 
-  // Navigate to auth page
   const handleNavigateToAuth = () => {
     navigate("/auth");
   };
 
-  // Close modal if user logs out while modal is open
   const handleModalOpenChange = (open: boolean) => {
     if (!open) {
       setOpenModal(null);
+      setCurrentSessionId(null);
     } else {
-      // If modal is being opened but user is not logged in for protected modals, don't open
-      if ((openModal === "dashboard" || openModal === "settings") && !user) {
+      if ((openModal === "dashboard" || openModal === "settings" || openModal === "reflection") && !user) {
         setOpenModal(null);
-        return;
       }
     }
   };
 
-  const modalBg = settings.darkMode ? "bg-slate-800 text-white" : "bg-blue-100 text-blue-900";
-
-  // Helper function to get modal size based on content type
   const getModalSize = (modalType: ModalType) => {
     switch (modalType) {
       case "dashboard":
       case "settings":
-        return "max-w-7xl w-full h-[90vh]"; // Full dashboard/settings view
+        return "max-w-7xl w-full h-[90vh]";
       case "privacy":
       case "terms":
-        return "max-w-4xl w-full max-h-[80vh]"; // Large for lengthy content
+        return "max-w-4xl w-full max-h-[80vh]";
+      case "reflection":
+        return "max-w-2xl w-full max-h-[80vh]";
       case "contact":
-        return "max-w-2xl w-full"; // Medium for contact info
+        return "max-w-2xl w-full";
       case "loginPrompt":
       case "logoutConfirm":
       case "donate":
       default:
-        return "max-w-md w-full"; // Small for simple prompts
+        return "max-w-md w-full";
     }
   };
 
-  // Helper function to render modal content with proper accessibility
   const renderModalContent = () => {
-    // Additional protection: don't render protected modals if user is not logged in
-    if ((openModal === "dashboard" || openModal === "settings") && !user) {
-      return null; // This shouldn't happen due to our protection, but just in case
+    if ((openModal === "dashboard" || openModal === "settings" || openModal === "reflection") && !user) {
+      return null;
     }
 
     switch (openModal) {
+      case "reflection":
+        return (
+          <>
+            <DialogHeader>
+              <DialogTitle className="sr-only">Session Reflection</DialogTitle>
+              <DialogDescription className="sr-only">
+                Reflect on your completed Pomodoro session
+              </DialogDescription>
+            </DialogHeader>
+            <div className="overflow-auto">
+              <ReflectionContent
+                sessionId={currentSessionId}
+                onSubmit={handleReflectionSubmit}
+                onClose={() => setOpenModal(null)}
+              />
+            </div>
+          </>
+        );
+      
       case "loginPrompt":
         return (
           <>
@@ -128,8 +147,12 @@ const Home = () => {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex gap-2">
-              <Button variant="outline" onClick={() => setOpenModal(null)} className="flex-1">Continue Without Account</Button>
-              <Button onClick={handleNavigateToAuth} className="flex-1 bg-blue-600 hover:bg-blue-700">Sign In</Button>
+              <Button variant="outline" onClick={() => setOpenModal(null)} className="flex-1">
+                Continue Without Account
+              </Button>
+              <Button onClick={handleNavigateToAuth} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                Sign In
+              </Button>
             </DialogFooter>
           </>
         );
@@ -197,7 +220,8 @@ const Home = () => {
                 Support Reflective Pomodoro
               </DialogTitle>
               <DialogDescription className="text-base leading-relaxed">
-                Hi! 👋 Reflective Pomodoro is a personal Pomodoro timer I built to help people focus and get things done. I run this project on my own—it's not backed by a big company—and your support would mean the world to me. Every donation, big or small, will not only help keep the site alive but also make it possible for me to keep improving it. Thank you for helping me continue this project—I truly appreciate it!
+                Hi! 👋 Reflective Pomodoro is a personal project I built to help people focus. 
+                Your support helps keep the site alive and enables continued improvements.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex gap-2 pt-4">
@@ -237,103 +261,147 @@ const Home = () => {
                 <h3 className="font-semibold text-lg mb-2">1. Information We Collect</h3>
                 <p>We collect several types of information to provide and improve our Service:</p>
                 <ul className="list-disc list-inside space-y-1 mt-2 ml-4">
-                  <li>Account information (e.g., name, email) for registered users</li>
-                  <li>Pomodoro session data and reflection notes</li>
-                  <li>Usage data such as device info, browser type, pages visited, and
-                      time spent</li>
-                  <li>Cookies and similar tracking technologies</li>
+                  <li><strong>Account Information:</strong> When you register, we collect your name, email address, and authentication credentials</li>
+                  <li><strong>Session Data:</strong> We store your Pomodoro session details, including session duration, type, and completion timestamps</li>
+                  <li><strong>Reflection Content:</strong> Your written reflections and learning insights are stored securely</li>
+                  <li><strong>Usage Data:</strong> We collect information about how you interact with our Service, including device information, browser type, pages visited, and time spent on features</li>
+                  <li><strong>Technical Data:</strong> IP addresses, cookies, and similar tracking technologies for security and functionality</li>
                 </ul>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">2. Use of Data</h3>
-                <p>Your information is used to:</p>
+                <h3 className="font-semibold text-lg mb-2">2. How We Use Your Information</h3>
+                <p>Your information is used for the following purposes:</p>
                 <ul className="list-disc list-inside space-y-1 mt-2 ml-4">
-                  <li>Provide and maintain the Service</li>
-                  <li>Track productivity patterns and progress</li>
-                  <li>Personalize and improve the user experience</li>
-                  <li>Send important updates or notifications</li>
-                  <li>Monitor usage and detect technical issues</li>
+                  <li>To provide, maintain, and improve our Service</li>
+                  <li>To authenticate your account and secure your data</li>
+                  <li>To track productivity patterns and generate personalized insights</li>
+                  <li>To communicate important updates, security alerts, and support messages</li>
+                  <li>To monitor and analyze usage patterns to enhance user experience</li>
+                  <li>To detect, prevent, and address technical issues and security vulnerabilities</li>
+                  <li>To comply with legal obligations and enforce our terms of service</li>
                 </ul>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">3. Cookies & Tracking</h3>
+                <h3 className="font-semibold text-lg mb-2">3. Data Storage and Security</h3>
                 <p>
-                  We use cookies and similar technologies to track activity and store
-                  certain preferences. You may choose to disable cookies in your browser,
-                  but some features of the Service may not function properly.
+                  We implement appropriate technical and organizational security measures
+                  to protect your personal information against unauthorized access,
+                  alteration, disclosure, or destruction. Your data is stored on secure
+                  servers with encryption and access controls. However, no method of
+                  transmission over the Internet or electronic storage is 100% secure, and
+                  we cannot guarantee absolute security.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-2">4. Data Retention</h3>
+                <p>
+                  We retain your personal information only for as long as necessary to
+                  fulfill the purposes outlined in this Privacy Policy. We will retain and
+                  use your information to the extent necessary to comply with our legal
+                  obligations, resolve disputes, and enforce our policies.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-2">5. Cookies and Tracking Technologies</h3>
+                <p>
+                  We use cookies and similar tracking technologies to track activity on our
+                  Service and hold certain information. Cookies are files with small amount
+                  of data which may include an anonymous unique identifier.
                 </p>
                 <ul className="list-disc list-inside space-y-1 mt-2 ml-4">
-                  <li>Session Cookies (to operate the Service)</li>
-                  <li>Preference Cookies (to remember your settings)</li>
-                  <li>Security Cookies (for authentication and protection)</li>
+                  <li><strong>Session Cookies:</strong> Used to operate our Service and maintain your login state</li>
+                  <li><strong>Preference Cookies:</strong> Used to remember your settings and preferences</li>
+                  <li><strong>Security Cookies:</strong> Used for security purposes and authentication</li>
+                  <li><strong>Analytics Cookies:</strong> Used to understand how users interact with our Service</li>
                 </ul>
-              </section>
-
-              <section>
-                <h3 className="font-semibold text-lg mb-2">4. Data Security</h3>
-                <p>
-                  We implement industry-standard measures to protect your data. However,
-                  please remember that no method of transmission over the Internet or
-                  electronic storage is 100% secure.
+                <p className="mt-2">
+                  You can instruct your browser to refuse all cookies or to indicate when a
+                  cookie is being sent. However, if you do not accept cookies, you may not
+                  be able to use some portions of our Service.
                 </p>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">5. Data Transfers</h3>
+                <h3 className="font-semibold text-lg mb-2">6. Third-Party Services</h3>
                 <p>
-                  Your information may be transferred and stored on servers outside of
-                  your country. By using the Service, you consent to such transfers,
-                  provided appropriate safeguards are in place.
+                  We may employ third-party companies and individuals to facilitate our
+                  Service ("Service Providers"), provide the Service on our behalf,
+                  perform Service-related services, or assist us in analyzing how our
+                  Service is used. These third parties have access to your Personal
+                  Information only to perform these tasks on our behalf and are obligated
+                  not to disclose or use it for any other purpose.
                 </p>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">6. Disclosure of Data</h3>
-                <p>We may disclose your data only when required to:</p>
+                <h3 className="font-semibold text-lg mb-2">7. Your Data Rights</h3>
+                <p>You have the following rights regarding your personal data:</p>
                 <ul className="list-disc list-inside space-y-1 mt-2 ml-4">
-                  <li>Comply with a legal obligation</li>
-                  <li>Protect and defend the rights or property of Reflective Pomodoro</li>
-                  <li>Investigate possible wrongdoing in connection with the Service</li>
-                  <li>Ensure the safety of users or the public</li>
-                  <li>Protect against legal liability</li>
+                  <li><strong>Access:</strong> You can request copies of your personal data</li>
+                  <li><strong>Rectification:</strong> You can request correction of inaccurate or incomplete data</li>
+                  <li><strong>Erasure:</strong> You can request deletion of your personal data</li>
+                  <li><strong>Restriction:</strong> You can request limitation of processing your data</li>
+                  <li><strong>Portability:</strong> You can request transfer of your data to another organization</li>
+                  <li><strong>Objection:</strong> You can object to our processing of your personal data</li>
                 </ul>
-              </section>
-
-              <section>
-                <h3 className="font-semibold text-lg mb-2">7. Service Providers</h3>
-                <p>
-                  We may employ third-party companies to provide services (such as
-                  analytics or hosting). These providers have access to your data only to
-                  perform specific tasks and are obligated not to disclose it.
+                <p className="mt-2">
+                  To exercise these rights, please contact us using the information provided below.
                 </p>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">8. Your Rights</h3>
+                <h3 className="font-semibold text-lg mb-2">8. International Data Transfers</h3>
                 <p>
-                  You have the right to access, update, or delete your personal data
-                  through your account settings or by contacting us directly.
+                  Your information may be transferred to — and maintained on — computers
+                  located outside of your state, province, country, or other governmental
+                  jurisdiction where the data protection laws may differ from those of
+                  your jurisdiction. We will take all steps reasonably necessary to ensure
+                  that your data is treated securely and in accordance with this Privacy
+                  Policy.
                 </p>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">9. Changes to This Policy</h3>
+                <h3 className="font-semibold text-lg mb-2">9. Children's Privacy</h3>
                 <p>
-                  We may update this Privacy Policy from time to time. Updates will be
-                  posted here with a new effective date. Continued use of the Service
-                  after changes are made constitutes acceptance of the revised policy.
+                  Our Service does not address anyone under the age of 13 ("Children").
+                  We do not knowingly collect personally identifiable information from
+                  anyone under the age of 13. If you are a parent or guardian and you are
+                  aware that your Child has provided us with Personal Data, please
+                  contact us. If we become aware that we have collected Personal Data from
+                  children without verification of parental consent, we take steps to
+                  remove that information from our servers.
                 </p>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">10. Contact Us</h3>
+                <h3 className="font-semibold text-lg mb-2">10. Changes to This Privacy Policy</h3>
                 <p>
-                  If you have any questions about this Privacy Policy, you can contact us
-                  at: <a href="mailto:reflectivepomodoro.supp@gmail.com" className="underline">
+                  We may update our Privacy Policy from time to time. We will notify you
+                  of any changes by posting the new Privacy Policy on this page and
+                  updating the "Effective Date" at the top. You are advised to review
+                  this Privacy Policy periodically for any changes. Changes to this
+                  Privacy Policy are effective when they are posted on this page.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-2">11. Contact Us</h3>
+                <p>
+                  If you have any questions about this Privacy Policy, your data rights,
+                  or wish to exercise any of your data protection rights, please contact us at:
+                </p>
+                <p className="mt-2">
+                  Email: <a href="mailto:reflectivepomodoro.supp@gmail.com" className="underline font-medium">
                     reflectivepomodoro.supp@gmail.com
                   </a>
+                </p>
+                <p>
+                  We will respond to all legitimate requests within 30 days.
                 </p>
               </section>
             </div>
@@ -361,9 +429,10 @@ const Home = () => {
               <section>
                 <h3 className="font-semibold text-lg mb-2">1. Acceptance of Terms</h3>
                 <p>
-                  By using Reflective Pomodoro, you acknowledge that you have read,
-                  understood, and agree to be bound by these Terms and our Privacy
-                  Policy.
+                  By accessing or using Reflective Pomodoro, you acknowledge that you have read,
+                  understood, and agree to be bound by these Terms and our Privacy Policy.
+                  If you are using the Service on behalf of an organization, you represent
+                  that you have authority to bind that organization to these Terms.
                 </p>
               </section>
 
@@ -373,74 +442,183 @@ const Home = () => {
                   We reserve the right to modify or update these Terms at any time. Any
                   changes will be effective immediately upon posting. Continued use of
                   the Service after changes are posted constitutes acceptance of the
-                  revised Terms.
+                  revised Terms. We will make reasonable efforts to notify users of
+                  material changes via email or in-service notifications.
                 </p>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">3. Use of Service</h3>
-                <p>You agree to use Reflective Pomodoro only for lawful purposes:</p>
+                <h3 className="font-semibold text-lg mb-2">3. Account Registration and Security</h3>
+                <p>
+                  To access certain features, you must register for an account. You agree to:
+                </p>
                 <ul className="list-disc list-inside space-y-1 mt-2 ml-4">
-                  <li>For personal, non-commercial purposes</li>
-                  <li>Not to reverse-engineer, decompile, or disassemble any part</li>
-                  <li>Not to interfere with or disrupt the Service</li>
-                  <li>Not to use the Service for any illegal or unauthorized activity</li>
+                  <li>Provide accurate, current, and complete information during registration</li>
+                  <li>Maintain and promptly update your account information</li>
+                  <li>Maintain the security of your password and accept all risks of unauthorized access</li>
+                  <li>Notify us immediately of any unauthorized use of your account</li>
+                  <li>Take responsibility for all activities that occur under your account</li>
+                </ul>
+                <p className="mt-2">
+                  We reserve the right to disable any user account at our sole discretion,
+                  including for violation of these Terms or suspicious activity.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-2">4. Acceptable Use</h3>
+                <p>You agree not to use the Service for any unlawful or prohibited purposes, including:</p>
+                <ul className="list-disc list-inside space-y-1 mt-2 ml-4">
+                  <li>Violating any applicable laws, regulations, or third-party rights</li>
+                  <li>Impersonating any person or entity or falsely stating your affiliation</li>
+                  <li>Uploading or transmitting viruses, malware, or any destructive code</li>
+                  <li>Attempting to gain unauthorized access to other accounts or systems</li>
+                  <li>Interfering with or disrupting the Service or servers/networks connected to the Service</li>
+                  <li>Using the Service for any commercial purposes without our express written consent</li>
+                  <li>Engaging in any activity that could damage, disable, overburden, or impair the Service</li>
+                  <li>Collecting or harvesting any information from the Service</li>
+                  <li>Using any automated systems, including "robots," "spiders," or "offline readers"</li>
                 </ul>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">4. Account Responsibility</h3>
+                <h3 className="font-semibold text-lg mb-2">5. Intellectual Property Rights</h3>
                 <p>
-                  You are responsible for maintaining the confidentiality of your account
-                  credentials and for all activities that occur under your account. We
-                  are not liable for any loss or damage resulting from unauthorized
-                  account access.
+                  The Service and its original content, features, and functionality are
+                  and will remain the exclusive property of Reflective Pomodoro and its
+                  licensors. The Service is protected by copyright, trademark, and other
+                  laws of both the United States and foreign countries. Our trademarks
+                  and trade dress may not be used in connection with any product or
+                  service without the prior written consent of Reflective Pomodoro.
+                </p>
+                <p className="mt-2">
+                  You retain ownership of any content you create, upload, or store within
+                  the Service. By using the Service, you grant us a worldwide,
+                  non-exclusive, royalty-free license to use, store, and display your
+                  content solely for the purpose of providing and improving the Service.
                 </p>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">5. Intellectual Property</h3>
+                <h3 className="font-semibold text-lg mb-2">6. User Content</h3>
                 <p>
-                  All content, features, and functionality of the Service (including but
-                  not limited to text, graphics, logos, and software) are the property of
-                  Reflective Pomodoro and are protected by applicable intellectual
-                  property laws.
+                  You are solely responsible for the content you create and store within
+                  the Service ("User Content"). You represent and warrant that:
+                </p>
+                <ul className="list-disc list-inside space-y-1 mt-2 ml-4">
+                  <li>You own or have the necessary rights to all User Content</li>
+                  <li>User Content does not infringe any third-party rights</li>
+                  <li>User Content complies with all applicable laws and regulations</li>
+                  <li>User Content does not contain harmful, offensive, or illegal material</li>
+                </ul>
+                <p className="mt-2">
+                  We reserve the right to remove any User Content that violates these Terms
+                  or that we determine to be otherwise objectionable.
                 </p>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">6. Service Modifications & Termination</h3>
+                <h3 className="font-semibold text-lg mb-2">7. Service Availability and Modifications</h3>
                 <p>
-                  We reserve the right to modify, suspend, or discontinue the Service at
-                  any time without prior notice. We may also terminate or restrict your
-                  access if you violate these Terms.
+                  We strive to maintain the availability of the Service but do not
+                  guarantee uninterrupted access. We may modify, suspend, or discontinue
+                  any aspect of the Service at any time, including the availability of
+                  any feature, database, or content. We may also impose limits on certain
+                  features and services or restrict your access to parts or all of the
+                  Service without notice or liability.
                 </p>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">7. Limitation of Liability</h3>
+                <h3 className="font-semibold text-lg mb-2">8. Termination</h3>
                 <p>
-                  Reflective Pomodoro is provided "as is" without warranties of any kind.
-                  To the fullest extent permitted by law, we disclaim liability for any
-                  indirect, incidental, special, consequential, or punitive damages,
-                  including but not limited to loss of data, profits, or goodwill.
+                  We may terminate or suspend your account and access to the Service
+                  immediately, without prior notice or liability, for any reason,
+                  including if you breach these Terms. Upon termination, your right to
+                  use the Service will cease immediately. All provisions of these Terms
+                  which by their nature should survive termination shall survive,
+                  including ownership provisions, warranty disclaimers, and limitations
+                  of liability.
                 </p>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">8. Governing Law</h3>
+                <h3 className="font-semibold text-lg mb-2">9. Disclaimer of Warranties</h3>
+                <p>
+                  THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES
+                  OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+                  IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
+                  OR NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE
+                  UNINTERRUPTED, SECURE, OR ERROR-FREE, THAT DEFECTS WILL BE CORRECTED,
+                  OR THAT THE SERVICE IS FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-2">10. Limitation of Liability</h3>
+                <p>
+                  TO THE FULLEST EXTENT PERMITTED BY LAW, IN NO EVENT SHALL REFLECTIVE
+                  POMODORO, ITS DIRECTORS, EMPLOYEES, PARTNERS, AGENTS, SUPPLIERS, OR
+                  AFFILIATES BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+                  CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING WITHOUT LIMITATION, LOSS
+                  OF PROFITS, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING
+                  FROM YOUR ACCESS TO OR USE OF OR INABILITY TO ACCESS OR USE THE SERVICE.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-2">11. Indemnification</h3>
+                <p>
+                  You agree to defend, indemnify, and hold harmless Reflective Pomodoro
+                  and its licensors from and against any claims, damages, obligations,
+                  losses, liabilities, costs, or debt, and expenses arising from:
+                </p>
+                <ul className="list-disc list-inside space-y-1 mt-2 ml-4">
+                  <li>Your use of and access to the Service</li>
+                  <li>Your violation of any term of these Terms</li>
+                  <li>Your violation of any third-party right, including privacy or intellectual property rights</li>
+                  <li>Any content you post or transmit through the Service</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-2">12. Governing Law and Jurisdiction</h3>
                 <p>
                   These Terms shall be governed and construed in accordance with the laws
-                  of your country of residence, without regard to conflict of law
-                  provisions.
+                  of the United States, without regard to its conflict of law provisions.
+                  Any legal suit, action, or proceeding arising out of, or related to,
+                  these Terms or the Service shall be instituted exclusively in the
+                  federal courts of the United States or the courts of the state where
+                  the Service operator is located.
                 </p>
               </section>
 
               <section>
-                <h3 className="font-semibold text-lg mb-2">9. Contact</h3>
+                <h3 className="font-semibold text-lg mb-2">13. Severability</h3>
                 <p>
-                  Questions or concerns about these Terms may be sent to:{" "}
-                  <a href="mailto:reflectivepomodoro.supp@gmail.com" className="underline">
+                  If any provision of these Terms is held to be invalid or unenforceable
+                  by a court, the remaining provisions of these Terms will remain in
+                  effect. The invalid or unenforceable provision will be deemed modified
+                  to the minimum extent necessary to make it valid and enforceable.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-2">14. Entire Agreement</h3>
+                <p>
+                  These Terms constitute the entire agreement between you and Reflective
+                  Pomodoro regarding our Service and supersede and replace any prior
+                  agreements we might have had between us regarding the Service.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-2">15. Contact Information</h3>
+                <p>
+                  If you have any questions about these Terms, please contact us at:
+                </p>
+                <p className="mt-2">
+                  Email: <a href="mailto:reflectivepomodoro.supp@gmail.com" className="underline font-medium">
                     reflectivepomodoro.supp@gmail.com
                   </a>
                 </p>
@@ -458,14 +636,67 @@ const Home = () => {
                 Get in touch with our support team
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 text-sm leading-relaxed">
-              <p>If you have any questions, feedback, or issues, feel free to contact us:</p>
-              <ul className="list-disc list-inside ml-4 space-y-1">
-                <li>Email: <a href="mailto:reflectivepomodoro.supp@gmail.com" className="underline">reflectivepomodoro.supp@gmail.com</a></li>
-                <li>Subject: Support or General Inquiry</li>
-                <li>Response Time: Typically within 24–48 hours</li>
-              </ul>
-              <p>We appreciate your feedback and strive to improve your Reflective Pomodoro experience.</p>
+            <div className="space-y-6 text-sm leading-relaxed">
+              <section>
+                <h3 className="font-semibold text-lg mb-3">Support and General Inquiries</h3>
+                <p>We're here to help with any questions, feedback, or issues you may have:</p>
+                <ul className="list-disc list-inside ml-4 space-y-2 mt-2">
+                  <li><strong>Email:</strong> <a href="mailto:reflectivepomodoro.supp@gmail.com" className="underline font-medium">reflectivepomodoro.supp@gmail.com</a></li>
+                  <li><strong>Response Time:</strong> We typically respond within 24-48 hours</li>
+                  <li><strong>Support Hours:</strong> Monday - Friday, 9:00 AM - 6:00 PM EST</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-3">What to Include in Your Message</h3>
+                <p>To help us assist you better, please include:</p>
+                <ul className="list-disc list-inside ml-4 space-y-1 mt-2">
+                  <li>Your username or email associated with your account</li>
+                  <li>A clear description of your question or issue</li>
+                  <li>Steps to reproduce any technical issues</li>
+                  <li>Screenshots if applicable</li>
+                  <li>Device and browser information</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-3">Types of Inquiries We Handle</h3>
+                <ul className="list-disc list-inside ml-4 space-y-1">
+                  <li>Account and login issues</li>
+                  <li>Technical support and bug reports</li>
+                  <li>Feature requests and suggestions</li>
+                  <li>Privacy and data concerns</li>
+                  <li>Billing and donation questions</li>
+                  <li>Partnership opportunities</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-3">Data Protection and Privacy</h3>
+                <p>
+                  When you contact us, we may collect and process your personal information
+                  to respond to your inquiry. This information is handled in accordance
+                  with our Privacy Policy. We do not share your contact information with
+                  third parties without your consent.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="font-semibold text-lg mb-3">Feedback and Suggestions</h3>
+                <p>
+                  We welcome your feedback and suggestions for improving Reflective Pomodoro.
+                  Your input helps us create a better experience for all users. Please
+                  share any ideas you have for new features or improvements.
+                </p>
+              </section>
+
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p className="text-blue-800 font-medium">
+                  💡 <strong>Pro Tip:</strong> For faster resolution of technical issues,
+                  please include your browser version, operating system, and any error
+                  messages you've encountered.
+                </p>
+              </div>
             </div>
           </>
         );
@@ -477,7 +708,6 @@ const Home = () => {
 
   return (
     <div className={`min-h-screen w-full p-4 md:p-8 ${settings.darkMode ? "bg-slate-900 text-white" : "bg-blue-100 text-blue-900"}`}>
-      {/* Header */}
       <header className="flex justify-between items-center mb-8">
         <div className="flex items-center space-x-4">
           <img 
@@ -496,7 +726,6 @@ const Home = () => {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              {/* Donate Button - Added before Dashboard */}
               <Button 
                 variant="outline" 
                 size="icon" 
@@ -548,7 +777,6 @@ const Home = () => {
                 <SettingsIcon className="h-5 w-5" />
                 <Lock className="h-3 w-3 absolute -top-1 -right-1 bg-slate-400 text-white rounded-full p-0.5" />
               </Button>
-              {/* Updated: Navigate to auth page instead of opening modal */}
               <Button variant="default" onClick={handleNavigateToAuth} className="bg-blue-600 hover:bg-blue-700">
                 Sign In
               </Button>
@@ -557,7 +785,6 @@ const Home = () => {
         </div>
       </header>
 
-      {/* Main */}
       <main className="max-w-6xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="hidden">
@@ -573,79 +800,52 @@ const Home = () => {
         </Tabs>
       </main>
 
-      {/* About Section */}
       <section className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-white text-blue-900 py-20 px-4 md:px-8 mt-16">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-5xl font-extrabold mb-8">About Reflective Pomodoro</h2>
           <p className="text-xl leading-relaxed mb-8">
-            <span className="font-semibold">Reflective Pomodoro</span> combines focused work intervals with intentional self-reflection, helping you stay productive while learning from each session.
+            <span className="font-semibold">Reflective Pomodoro</span> combines focused work intervals with intentional self-reflection.
           </p>
-          <h3 className="text-3xl font-bold mb-6">What is the Pomodoro Technique?</h3>
-          <p className="text-lg leading-relaxed mb-8 max-w-3xl mx-auto">
-            Developed by <span className="font-semibold">Francesco Cirillo</span>, it breaks work into intervals, traditionally <span className="font-semibold">25 minutes of focused work</span> followed by <span className="font-semibold">short breaks</span>.
-          </p>
-          <h3 className="text-3xl font-bold mb-6">How to Use Reflective Pomodoro</h3>
+          <h3 className="text-3xl font-bold mb-6">How to Use</h3>
           <ul className="text-lg leading-relaxed space-y-4 text-left max-w-3xl mx-auto">
-            <li>• Start a session using the timer and focus on a single task.</li>
-            <li>• Reflect after completion and log your insights.</li>
-            <li>• Review your Dashboard to visualize progress.</li>
-            <li>• Repeat the cycle to maintain focus.</li>
+            <li>• Start a session using the timer and focus on a single task</li>
+            <li>• Reflect after completion and log your insights</li>
+            <li>• Review your Dashboard to visualize progress</li>
+            <li>• Repeat the cycle to maintain focus</li>
           </ul>
           <h3 className="text-3xl font-bold mt-12 mb-6">Key Features</h3>
           <ul className="text-lg leading-relaxed space-y-4 text-left max-w-3xl mx-auto">
-            <li>• <span className="font-semibold">Reflection Recording:</span> Log insights after each session.</li>
-            <li>• <span className="font-semibold">Session Timer:</span> Customizable intervals.</li>
-            <li>• <span className="font-semibold">Dashboard Analytics:</span> Visualize productivity trends.</li>
-            <li>• <span className="font-semibold">Personalization:</span> Adjust session lengths and notifications.</li>
+            <li>• Reflection Recording: Log insights after each session</li>
+            <li>• Session Timer: Customizable intervals</li>
+            <li>• Dashboard Analytics: Visualize productivity trends</li>
+            <li>• Personalization: Adjust session lengths and notifications</li>
           </ul>
-          <p className="text-lg leading-relaxed mt-12 max-w-3xl mx-auto">
-            ⚠️ <span className="font-semibold">Ongoing Project Notice:</span> Reflective Pomodoro is an ongoing project run by me, not a big corporation. 
-            If you encounter any bugs or issues, please don't be frustrated—simply send an email to 
-            <span className="font-semibold text-blue-700"> reflectivepomodoro.supp@gmail.com </span>. 
-            Your feedback helps me improve the tool for everyone.
-          </p>
         </div>
       </section>
 
-      {/* Reflection Modal */}
-      {user && (
-        <ReflectionModal
-          isOpen={showReflection}
-          onOpenChange={(open) => {
-            setShowReflection(open);
-            if (!open) setCurrentSessionId(null);
-          }}
-          sessionId={currentSessionId}
-          onSubmit={handleReflectionSubmit}
-        />
-      )}
-
-      {/* Unified Modal */}
-      <Dialog 
-        open={openModal !== null} 
-        onOpenChange={handleModalOpenChange}
-      >
-        <DialogContent className={`${getModalSize(openModal)} max-h-[90vh] overflow-hidden ${modalBg}`}>
+      <Dialog open={openModal !== null} onOpenChange={handleModalOpenChange}>
+        <DialogContent className={`${getModalSize(openModal)} max-h-[90vh] overflow-hidden ${settings.darkMode ? "bg-slate-800 text-white" : "bg-blue-100 text-blue-900"}`}>
           {renderModalContent()}
         </DialogContent>
       </Dialog>
 
-      {/* Footer */}
       <footer className="mt-12 pt-6 border-t border-blue-200">
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <p className="text-sm text-blue-700">Reflective Pomodoro - Focus with mindfulness</p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => setOpenModal("privacy")} className="flex items-center gap-2 text-blue-700 hover:text-blue-900"><Shield className="h-4 w-4" /> Privacy</Button>
-            <Button variant="ghost" size="sm" onClick={() => setOpenModal("terms")} className="flex items-center gap-2 text-blue-700 hover:text-blue-900"><FileText className="h-4 w-4" /> Terms</Button>
-            <Button variant="ghost" size="sm" onClick={() => setOpenModal("contact")} className="flex items-center gap-2 text-blue-700 hover:text-blue-900"><Mail className="h-4 w-4" /> Contact</Button>
+            <Button variant="ghost" size="sm" onClick={() => setOpenModal("privacy")} className="flex items-center gap-2 text-blue-700 hover:text-blue-900">
+              <Shield className="h-4 w-4" /> Privacy
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setOpenModal("terms")} className="flex items-center gap-2 text-blue-700 hover:text-blue-900">
+              <FileText className="h-4 w-4" /> Terms
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setOpenModal("contact")} className="flex items-center gap-2 text-blue-700 hover:text-blue-900">
+              <Mail className="h-4 w-4" /> Contact
+            </Button>
           </div>
         </div>
         <div className="text-center mt-4">
-          <img 
-            src="/pomodoro.png" 
-            alt="Reflective Pomodoro Logo" 
-            className="mx-auto mb-2 w-12 h-12"
-          />
+          <img src="/pomodoro.png" alt="Reflective Pomodoro Logo" className="mx-auto mb-2 w-12 h-12" />
           <p className="text-xs text-blue-600">
             © {new Date().getFullYear()} Reflective Pomodoro. All rights reserved.
           </p>
