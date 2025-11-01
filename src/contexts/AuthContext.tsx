@@ -8,8 +8,6 @@ interface User {
   is2FAEnabled?: boolean;
 }
 
-// Remove TwoFAData interface since we're not using QR codes anymore
-
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -17,12 +15,10 @@ interface AuthContextType {
   requires2FA: boolean;
   requires2FASetup: boolean;
   pending2FAEmail: string | null;
-  // Remove twoFAData from the interface
   login: (email: string, password: string, twoFAToken?: string) => Promise<any>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   clear2FAState: () => void;
-  // Remove complete2FASetup since it's handled automatically
   verify2FA: (token: string) => Promise<void>;
   resend2FACode: () => Promise<void>;
 }
@@ -48,7 +44,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [requires2FA, setRequires2FA] = useState(false);
   const [requires2FASetup, setRequires2FASetup] = useState(false);
   const [pending2FAEmail, setPending2FAEmail] = useState<string | null>(null);
-  // Remove twoFAData state
 
   useEffect(() => {
     const checkExistingSession = () => {
@@ -84,12 +79,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setRequires2FA(false);
     setRequires2FASetup(false);
     setPending2FAEmail(null);
-    // No need to clear twoFAData anymore
   };
 
   const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     const url = `${API_BASE_URL}/api/auth${endpoint}`;
     
+    // Debug logging
+    console.log('🔍 API Request:', {
+      url,
+      method: options.method,
+      endpoint
+    });
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -109,14 +110,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return response.json();
   };
 
-  // Resend 2FA code method
+  // Resend 2FA code method - FIXED ENDPOINT
   const resend2FACode = async (): Promise<void> => {
     if (!pending2FAEmail) {
       throw new Error("No pending verification");
     }
 
     try {
-      const data = await apiRequest('/resend-2fa', {
+      console.log('🔄 Resending 2FA code to:', pending2FAEmail);
+      
+      const data = await apiRequest('/resend-2fa-code', {  // Fixed endpoint
         method: 'POST',
         body: JSON.stringify({ email: pending2FAEmail }),
       });
@@ -124,7 +127,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!data.success) {
         throw new Error(data.message || "Failed to resend code");
       }
+      
+      console.log('✅ Resend 2FA code successful');
     } catch (error: any) {
+      console.error('❌ Resend 2FA code failed:', error);
       throw new Error(error.message || "Failed to resend verification code");
     }
   };
@@ -140,6 +146,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error("Password should be at least 6 characters");
       }
 
+      console.log('👤 Signup attempt for:', email);
+
       const data = await apiRequest('/register', {
         method: 'POST',
         body: JSON.stringify({ name, email, password }),
@@ -148,6 +156,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (data.success) {
         // For email 2FA, we don't get user data immediately
         if (data.data.requires2FASetup) {
+          console.log('🔄 Signup requires 2FA setup');
           setPending2FAEmail(data.data.email);
           setRequires2FASetup(true);
           return;
@@ -171,10 +180,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(newUser);
         setToken(authToken);
         clear2FAState();
+        
+        console.log('✅ Signup successful');
       } else {
         throw new Error(data.message || "Signup failed");
       }
     } catch (error: any) {
+      console.error('❌ Signup failed:', error);
       throw new Error(error.message || "Signup failed");
     } finally {
       setIsLoading(false);
@@ -187,6 +199,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!email || !password) {
         throw new Error("Email and password are required");
       }
+
+      console.log('🔐 Login attempt for:', email);
 
       const body: any = { email, password };
       if (twoFAToken) {
@@ -201,6 +215,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (data.success) {
         // Handle 2FA required case (existing users with 2FA enabled)
         if (data.data.requires2FA) {
+          console.log('🔄 Login requires 2FA verification');
           setRequires2FA(true);
           setPending2FAEmail(data.data.email);
           return { requires2FA: true, email: data.data.email };
@@ -208,6 +223,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // Handle 2FA setup prompt case (first-time login or new users)
         if (data.data.requires2FASetup) {
+          console.log('🔄 Login requires 2FA setup');
           setPending2FAEmail(data.data.email);
           setRequires2FASetup(true);
           return { requires2FASetup: true };
@@ -231,11 +247,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(loggedInUser);
         setToken(authToken);
         clear2FAState();
+        
+        console.log('✅ Login successful');
         return { success: true };
       } else {
         throw new Error(data.message || "Login failed");
       }
     } catch (error: any) {
+      console.error('❌ Login failed:', error);
       throw new Error(error.message || "Login failed");
     } finally {
       setIsLoading(false);
@@ -249,9 +268,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error("No pending 2FA verification");
       }
 
+      console.log('🔐 2FA verification attempt for:', pending2FAEmail);
+
       const data = await apiRequest('/verify-2fa', {
         method: 'POST',
-        body: JSON.stringify({ email: pending2FAEmail, token }),
+        body: JSON.stringify({ 
+          email: pending2FAEmail, 
+          code: token  // Fixed parameter name to match backend
+        }),
       });
 
       if (data.success) {
@@ -272,10 +296,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(loggedInUser);
         setToken(authToken);
         clear2FAState();
+        
+        console.log('✅ 2FA verification successful');
       } else {
         throw new Error(data.message || "Verification failed");
       }
     } catch (error: any) {
+      console.error('❌ 2FA verification failed:', error);
       throw new Error(error.message || "Verification failed");
     } finally {
       setIsLoading(false);
@@ -285,6 +312,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       setIsLoading(true);
+      console.log('🚪 Logging out...');
       
       if (token) {
         try {
@@ -296,10 +324,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
         } catch (error) {
           // Silent fail for logout
+          console.log('⚠️ Logout API call failed, but clearing local data');
         }
       }
 
       clearAuthData();
+      console.log('✅ Logout successful');
     } finally {
       setIsLoading(false);
     }
@@ -313,12 +343,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       requires2FA,
       requires2FASetup,
       pending2FAEmail,
-      // Remove twoFAData from the value
       login, 
       signup, 
       logout,
       clear2FAState,
-      // Remove complete2FASetup from the value
       verify2FA,
       resend2FACode,
     }}>
