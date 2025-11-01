@@ -65,11 +65,11 @@ interface LeaderboardUser {
   isCurrentUser?: boolean;
 }
 
+// Use environment variable with fallback
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://reflectivepomodoro.com';
+
 const getApiBaseUrl = () => {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:5000';
-  }
-  return 'https://reflectivepomodoro.com';
+  return API_BASE_URL;
 };
 
 const Dashboard: React.FC<DashboardProps> = () => {
@@ -86,23 +86,47 @@ const Dashboard: React.FC<DashboardProps> = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardUser[]>([]);
 
+  const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+    const baseUrl = getApiBaseUrl();
+    
+    if (!baseUrl) {
+      throw new Error('API base URL is not configured');
+    }
+
+    const url = `${baseUrl}${endpoint}`;
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error: any) {
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        throw new Error(`Cannot connect to server. Please check your connection.`);
+      }
+      throw error;
+    }
+  };
+
   const loadLeaderboardData = async () => {
     if (!user || !token) return;
 
     try {
-      const API_BASE_URL = getApiBaseUrl();
-      const response = await fetch(`${API_BASE_URL}/api/users/leaderboard`, {
+      const data = await apiRequest('/api/users/leaderboard', {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
         }
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to load leaderboard: ${response.status}`);
-      }
-
-      const data = await response.json();
       
       if (data.success) {
         const leaderboardUsers: LeaderboardUser[] = data.data.users.map((userData: any, index: number) => ({
@@ -123,6 +147,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
         throw new Error(data.message || 'Failed to load leaderboard');
       }
     } catch (error) {
+      console.error('Leaderboard load failed, using local data:', error);
       createLeaderboardFromSessions();
     }
   };
@@ -154,25 +179,18 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
     try {
       setRefreshing(true);
-      const API_BASE_URL = getApiBaseUrl();
       
       if (!token) {
         loadLocalData();
         return;
       }
 
-      const sessionsResponse = await fetch(`${API_BASE_URL}/api/sessions?limit=200`, {
+      const sessionsData = await apiRequest('/api/sessions?limit=200', {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
         }
       });
 
-      if (!sessionsResponse.ok) {
-        throw new Error(`Failed to load sessions: ${sessionsResponse.status}`);
-      }
-
-      const sessionsData = await sessionsResponse.json();
       let dbSessions: SessionData[] = [];
       let dbReflections: ReflectionData[] = [];
 
@@ -190,35 +208,32 @@ const Dashboard: React.FC<DashboardProps> = () => {
       }
 
       try {
-        const reflectionsResponse = await fetch(`${API_BASE_URL}/api/reflections?limit=10`, {
+        const reflectionsData = await apiRequest('/api/reflections?limit=10', {
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
           }
         });
+        
+        if (reflectionsData.success) {
+          dbReflections = reflectionsData.data.reflections.map((reflection: any) => ({
+            id: reflection._id || reflection.id,
+            createdAt: new Date(reflection.createdAt),
+            learnings: reflection.learnings,
+            sessionId: reflection.sessionId,
+            session: dbSessions.find(s => s.id === reflection.sessionId)
+          }));
 
-        if (reflectionsResponse.ok) {
-          const reflectionsData = await reflectionsResponse.json();
-          
-          if (reflectionsData.success) {
-            dbReflections = reflectionsData.data.reflections.map((reflection: any) => ({
-              id: reflection._id || reflection.id,
-              createdAt: new Date(reflection.createdAt),
-              learnings: reflection.learnings,
-              sessionId: reflection.sessionId,
-              session: dbSessions.find(s => s.id === reflection.sessionId)
-            }));
-
-            setRecentReflections(dbReflections);
-          }
+          setRecentReflections(dbReflections);
         }
       } catch (reflectionsError) {
         // Continue without reflections
+        console.log('Reflections not available');
       }
 
       await loadLeaderboardData();
 
     } catch (error) {
+      console.error('Dashboard data load failed, using local data:', error);
       loadLocalData();
     } finally {
       setLoading(false);
@@ -244,7 +259,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
         createLeaderboardFromSessions();
       }
     } catch (error) {
-      // Handle error silently
+      console.error('Local data load failed:', error);
     }
   };
 

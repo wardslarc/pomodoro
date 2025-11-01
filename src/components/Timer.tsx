@@ -27,11 +27,11 @@ interface SessionHistory {
   sessionId: string;
 }
 
+// Use environment variable with fallback
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://reflectivepomodoro.com';
+
 const getApiBaseUrl = () => {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:5000';
-  }
-  return 'https://reflectivepomodoro.com';
+  return API_BASE_URL;
 };
 
 const Timer = ({
@@ -63,6 +63,38 @@ const Timer = ({
     sessionTypeRef.current = sessionType;
     completedSessionsRef.current = completedSessions;
   }, [sessionType, completedSessions]);
+
+  const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+    const baseUrl = getApiBaseUrl();
+    
+    if (!baseUrl) {
+      throw new Error('API base URL is not configured');
+    }
+
+    const url = `${baseUrl}${endpoint}`;
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error: any) {
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        throw new Error(`Cannot connect to server. Please check your connection.`);
+      }
+      throw error;
+    }
+  };
 
   const getTotalDuration = useCallback(() => {
     switch (sessionType) {
@@ -169,28 +201,12 @@ const Timer = ({
     try {
       if (!token) return;
 
-      const API_BASE_URL = getApiBaseUrl();
-      const response = await fetch(`${API_BASE_URL}/api/sessions?limit=100`, {
+      const data = await apiRequest('/api/sessions?limit=100', {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
         }
       });
 
-      // Handle rate limiting
-      if (response.status === 429) {
-        setCloudSyncEnabled(false);
-        return;
-      }
-
-      if (!response.ok) {
-        if (response.status === 401) return;
-        setCloudSyncEnabled(false);
-        return;
-      }
-
-      const data = await response.json();
-      
       if (data.success) {
         const dbSessions: SessionHistory[] = data.data.sessions.map((session: any) => ({
           sessionId: session._id || session.id,
@@ -340,7 +356,6 @@ const Timer = ({
 
       if (sessionData.duration <= 0) return null;
 
-      const API_BASE_URL = getApiBaseUrl();
       const payload = {
         userId: user.uid,
         sessionType: sessionData.sessionType,
@@ -351,26 +366,13 @@ const Timer = ({
         efficiency: 3
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/sessions`, {
+      const data = await apiRequest('/api/sessions', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });
-
-      // Handle rate limiting
-      if (response.status === 429) {
-        setCloudSyncEnabled(false);
-        return null;
-      }
-
-      if (response.status === 401) return null;
-
-      if (!response.ok) return null;
-
-      const data = await response.json();
       
       if (data.success) {
         return data.data.session._id || data.data.session.id;

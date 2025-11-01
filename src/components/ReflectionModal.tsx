@@ -19,11 +19,11 @@ interface ReflectionModalProps {
   onSubmit?: (reflectionData: { learnings: string; sessionId: string | null }) => void;  
 }
 
+// Use environment variable with fallback
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://reflectivepomodoro.com';
+
 const getApiBaseUrl = () => {
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:5000';
-  }
-  return 'https://reflectivepomodoro.com';
+  return API_BASE_URL;
 };
 
 const ReflectionModal: React.FC<ReflectionModalProps> = ({
@@ -82,6 +82,38 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
     return sessionData;
   };
 
+  const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+    const baseUrl = getApiBaseUrl();
+    
+    if (!baseUrl) {
+      throw new Error('API base URL is not configured');
+    }
+
+    const url = `${baseUrl}${endpoint}`;
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error: any) {
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        throw new Error(`Cannot connect to server. Please check your connection.`);
+      }
+      throw error;
+    }
+  };
+
   const saveReflectionToDatabase = async (reflectionData: { learnings: string; sessionId: string | null }) => {
     try {
       if (!token) {
@@ -94,34 +126,19 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
         throw new Error('Session ID is required to save reflection');
       }
 
-      const API_BASE_URL = getApiBaseUrl();
       const payload = {
         sessionId: actualSessionId,
         learnings: reflectionData.learnings,
         createdAt: new Date().toISOString()
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/reflections`, {
+      const data = await apiRequest('/api/reflections', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });
-      
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorData.errors?.[0]?.msg || errorMessage;
-        } catch (parseError) {
-          // Continue with default error message
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
       
       if (data.success) {
         return data.data.reflection._id;
@@ -146,13 +163,16 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
 
     try {
       const extractedSessionId = extractSessionId(sessionId);
-      if (user && extractedSessionId) {
+      
+      // Only save to database if user is logged in and we have a valid session ID
+      if (user && token && extractedSessionId && !extractedSessionId.startsWith('local-')) {
         await saveReflectionToDatabase({
           learnings: learnings.trim(),
           sessionId: extractedSessionId
         });
       }
 
+      // Always call the onSubmit callback for local handling
       if (onSubmit) {
         await onSubmit({
           learnings: learnings.trim(),
