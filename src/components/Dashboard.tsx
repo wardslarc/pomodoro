@@ -892,105 +892,111 @@ const Dashboard: React.FC<DashboardProps> = () => {
             </Card>
           </div>
 
-          <div className="space-y-8 h-fit">
-            <Card className="sticky top-8 overflow-hidden" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <CalendarIcon className="h-5 w-5 text-primary" />
-                  Activity Calendar
-                </CardTitle>
-                <CardDescription>Your focus day history</CardDescription>
-              </CardHeader>
-              <CardContent className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 12rem)' }}>
-                <div className="flex justify-center">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    className="rounded-xl border"
-                    modifiers={{
-                      highlighted: calendarData.map(d => d.date),
-                    }}
-                    modifiersClassNames={{
-                      highlighted: "bg-primary text-primary-foreground font-bold",
-                    }}
-                  />
-                </div>
-                
-                <div className="mt-6 space-y-4">
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <div className="text-2xl font-bold text-primary">{sessions.length}</div>
-                      <div className="text-xs text-muted-foreground">Total Sessions</div>
-                    </div>
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <div className="text-2xl font-bold text-primary">{calendarData.length}</div>
-                      <div className="text-xs text-muted-foreground">Active Days</div>
-                    </div>
-                    <div className="p-3 bg-muted/30 rounded-lg">
-                      <div className="text-2xl font-bold text-primary">{streakDays}</div>
-                      <div className="text-xs text-muted-foreground">Day Streak</div>
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border">
-                    <div className="flex items-center gap-3">
-                      <Star className="h-5 w-5 text-primary" />
-                      <div>
-                        <div className="font-semibold">Keep it up!</div>
-                        <div className="text-sm text-muted-foreground">
-                          {streakDays > 0 
-                            ? `You're on a ${streakDays}-day streak!` 
-                            : 'Start a streak by focusing tomorrow'
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Stats</CardTitle>
-                <CardDescription>Your productivity at a glance</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-                    <span className="text-sm font-medium">Average Sessions/Day</span>
-                    <Badge variant="secondary">
-                      {calendarData.length > 0 
-                        ? (sessions.length / calendarData.length).toFixed(1) 
-                        : '0'
-                      }
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-                    <span className="text-sm font-medium">Best Day</span>
-                    <Badge variant="secondary">
-                      {Math.max(...weeklyPomodoros)} sessions
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-                    <span className="text-sm font-medium">Completion Rate</span>
-                    <Badge variant="secondary">
-                      {sessions.length > 0 ? Math.round((workSessions.length / sessions.length) * 100) : 0}%
-                    </Badge>
-                  </div>
-                  {currentUserRank > 0 && (
-                    <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg border border-primary/20">
-                      <span className="text-sm font-medium">Leaderboard Rank</span>
-                      <Badge variant="default" className="bg-primary">
-                        #{currentUserRank}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+<div className="space-y-8">
+  {/* Activity Calendar - Fixed Position */}
+  <Card className="fixed right-8 top-8 w-80 z-50 overflow-hidden shadow-lg" style={{ 
+    maxHeight: 'calc(100vh - 2rem)'
+  }}>
+    <CardHeader className="pb-4">
+      <CardTitle className="flex items-center gap-2">
+        <CalendarIcon className="h-5 w-5 text-primary" />
+        Activity Calendar
+      </CardTitle>
+      <CardDescription>Your focus day history</CardDescription>
+    </CardHeader>
+    <CardContent className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 12rem)' }}>
+      <div className="flex justify-center">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={setDate}
+          className="rounded-xl border"
+          modifiers={{
+            highlighted: calendarData.map(d => d.date),
+          }}
+          modifiersClassNames={{
+            highlighted: "bg-primary text-primary-foreground font-bold",
+          }}
+        />
+      </div>
+      
+      <div className="mt-6 space-y-4">
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="p-3 bg-muted/30 rounded-lg">
+            <div className="text-2xl font-bold text-primary">{sessions.length}</div>
+            <div className="text-xs text-muted-foreground">Total Sessions</div>
           </div>
+          <div className="p-3 bg-muted/30 rounded-lg">
+            <div className="text-2xl font-bold text-primary">{calendarData.length}</div>
+            <div className="text-xs text-muted-foreground">Active Days</div>
+          </div>
+          <div className="p-3 bg-muted/30 rounded-lg">
+            <div className="text-2xl font-bold text-primary">{streakDays}</div>
+            <div className="text-xs text-muted-foreground">Day Streak</div>
+          </div>
+        </div>
+        
+        <div className="p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border">
+          <div className="flex items-center gap-3">
+            <Star className="h-5 w-5 text-primary" />
+            <div>
+              <div className="font-semibold">Keep it up!</div>
+              <div className="text-sm text-muted-foreground">
+                {streakDays > 0 
+                  ? `You're on a ${streakDays}-day streak!` 
+                  : 'Start a streak by focusing tomorrow'
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+
+  {/* Quick Stats Card - This will now appear below the main content since calendar is fixed */}
+  <div className="mt-8"> {/* Added margin to account for fixed calendar */}
+    <Card>
+      <CardHeader>
+        <CardTitle>Quick Stats</CardTitle>
+        <CardDescription>Your productivity at a glance</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+            <span className="text-sm font-medium">Average Sessions/Day</span>
+            <Badge variant="secondary">
+              {calendarData.length > 0 
+                ? (sessions.length / calendarData.length).toFixed(1) 
+                : '0'
+              }
+            </Badge>
+          </div>
+          <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+            <span className="text-sm font-medium">Best Day</span>
+            <Badge variant="secondary">
+              {Math.max(...weeklyPomodoros)} sessions
+            </Badge>
+          </div>
+          <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+            <span className="text-sm font-medium">Completion Rate</span>
+            <Badge variant="secondary">
+              {sessions.length > 0 ? Math.round((workSessions.length / sessions.length) * 100) : 0}%
+            </Badge>
+          </div>
+          {currentUserRank > 0 && (
+            <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <span className="text-sm font-medium">Leaderboard Rank</span>
+              <Badge variant="default" className="bg-primary">
+                #{currentUserRank}
+              </Badge>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+</div>
         </div>
       </div>
     </div>
