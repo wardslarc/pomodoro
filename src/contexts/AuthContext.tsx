@@ -105,17 +105,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw new Error("No pending verification");
     }
 
-    try {
-      const data = await apiRequest('/resend-2fa-code', {
-        method: 'POST',
-        body: JSON.stringify({ email: pending2FAEmail }),
-      });
+    const data = await apiRequest('/resend-2fa-code', {
+      method: 'POST',
+      body: JSON.stringify({ email: pending2FAEmail }),
+    });
 
-      if (!data.success) {
-        throw new Error(data.message || "Failed to resend code");
-      }
-    } catch (error: any) {
-      throw new Error(error.message || "Failed to resend verification code");
+    if (!data.success) {
+      throw new Error(data.message || "Failed to resend code");
     }
   };
 
