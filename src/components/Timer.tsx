@@ -49,7 +49,8 @@ const Timer = ({
   const [sessionHistory, setSessionHistory] = useState<SessionHistory[]>([]);
   const [showReflection, setShowReflection] = useState(false);
   const [completedSessionId, setCompletedSessionId] = useState<string | null>(null);
-  const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
+  const [cloudSyncEnabled, setCloudSyncEnabled] = useState(true);
+  const [lastError, setLastError] = useState<string | null>(null);
   
   const sessionTypeRef = useRef(sessionType);
   const completedSessionsRef = useRef(completedSessions);
@@ -73,22 +74,34 @@ const Timer = ({
 
     const url = `${baseUrl}${endpoint}`;
     
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers,
+    };
+
     try {
+      console.log(`Making API request to: ${url}`);
       const response = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
+        headers,
         ...options,
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText || `HTTP error! status: ${response.status}` };
+        }
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      return response.json();
+      const data = await response.json();
+      return data;
     } catch (error: any) {
+      console.error('API request failed:', error);
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
         throw new Error(`Cannot connect to server. Please check your connection.`);
       }
@@ -154,12 +167,23 @@ const Timer = ({
       const actualDurationInMinutes = Math.max(1, Math.round(actualDurationInSeconds / 60));
 
       let newSessionId = `local-${Date.now()}`;
-      if (user && token && cloudSyncEnabled) {
-        const dbSessionId = await saveSessionToDatabase({
-          sessionType: currentSessionType,
-          duration: actualDurationInMinutes,
-        });
-        if (dbSessionId) newSessionId = dbSessionId;
+      
+      // Always try to save to database if user is logged in
+      if (user && token) {
+        try {
+          const dbSessionId = await saveSessionToDatabase({
+            sessionType: currentSessionType,
+            duration: actualDurationInMinutes,
+          });
+          if (dbSessionId) {
+            newSessionId = dbSessionId;
+            console.log('Session saved to database with ID:', dbSessionId);
+          }
+        } catch (error: any) {
+          console.error('Failed to save session to database:', error);
+          setLastError(`Failed to save session: ${error.message}`);
+          // Continue with local session ID even if cloud save fails
+        }
       }
 
       const newSession: SessionHistory = {
@@ -168,8 +192,16 @@ const Timer = ({
         completedAt: new Date(),
         sessionId: newSessionId,
       };
+      
       setSessionHistory(prev => [...prev, newSession].slice(-50));
       setCompletedSessions(currentCompletedSessions + 1);
+
+      // Call the completion callback
+      onSessionComplete({
+        sessionId: newSessionId,
+        sessionType: currentSessionType,
+        duration: actualDurationInMinutes,
+      });
 
       setShowReflection(true);
       setCompletedSessionId(newSessionId);
@@ -184,14 +216,15 @@ const Timer = ({
 
       setIsRunning(false);
       endTimeRef.current = null;
-    } catch (err) {
-      // Handle error silently
+    } catch (err: any) {
+      console.error('Error in timer completion:', err);
+      setLastError(`Completion error: ${err.message}`);
     } finally {
       setTimeout(() => {
         completionLockRef.current = false;
       }, 300);
     }
-  }, [settings, onSessionComplete, user, token, timeLeft, getTotalDuration, cloudSyncEnabled]);
+  }, [settings, onSessionComplete, user, token, timeLeft, getTotalDuration]);
 
   useEffect(() => {
     handleTimerCompleteRef.current = handleTimerComplete;
@@ -199,13 +232,13 @@ const Timer = ({
 
   const loadSessionsFromDatabase = async () => {
     try {
-      if (!token) return;
+      if (!token) {
+        setCloudSyncEnabled(false);
+        return;
+      }
 
-      const data = await apiRequest('/api/sessions?limit=100', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
+      console.log('Loading sessions from database...');
+      const data = await apiRequest('/api/sessions?limit=100');
 
       if (data.success) {
         const dbSessions: SessionHistory[] = data.data.sessions.map((session: any) => ({
@@ -219,11 +252,16 @@ const Timer = ({
         const workSessionsCount = dbSessions.filter(s => s.sessionType === 'work').length;
         setCompletedSessions(workSessionsCount);
         setCloudSyncEnabled(true);
+        setLastError(null);
+        console.log(`Loaded ${dbSessions.length} sessions from database`);
       } else {
         setCloudSyncEnabled(false);
+        setLastError('Failed to load sessions from server');
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Failed to load sessions:', error);
       setCloudSyncEnabled(false);
+      setLastError(`Sync failed: ${error.message}`);
     }
   };
 
@@ -247,11 +285,16 @@ const Timer = ({
           setSessionHistory(historyWithDates);
         }
 
+        // Enable cloud sync by default if user is logged in
         if (user && token) {
+          setCloudSyncEnabled(true);
           await loadSessionsFromDatabase();
+        } else {
+          setCloudSyncEnabled(false);
         }
-      } catch (error) {
-        // Handle error silently
+      } catch (error: any) {
+        console.error('Error loading timer state:', error);
+        setLastError(`Load error: ${error.message}`);
       } finally {
         setIsLoading(false);
       }
@@ -352,9 +395,15 @@ const Timer = ({
     duration: number;
   }) => {
     try {
-      if (!token || !user || !cloudSyncEnabled) return null;
+      if (!token || !user) {
+        console.log('No token or user - skipping cloud save');
+        return null;
+      }
 
-      if (sessionData.duration <= 0) return null;
+      if (sessionData.duration <= 0) {
+        console.log('Invalid duration - skipping save');
+        return null;
+      }
 
       const payload = {
         userId: user.uid,
@@ -366,22 +415,24 @@ const Timer = ({
         efficiency: 3
       };
 
+      console.log('Saving session to database:', payload);
       const data = await apiRequest('/api/sessions', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify(payload)
       });
       
       if (data.success) {
+        console.log('Session saved successfully:', data.data.session);
+        setLastError(null);
         return data.data.session._id || data.data.session.id;
       } else {
-        return null;
+        throw new Error(data.message || 'Failed to save session');
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error saving session to database:', error);
       setCloudSyncEnabled(false);
-      return null;
+      setLastError(`Save failed: ${error.message}`);
+      throw error;
     }
   };
 
@@ -569,7 +620,12 @@ const Timer = ({
               )}
               {user && !cloudSyncEnabled && (
                 <div className="text-xs text-amber-600">
-                  Cloud sync temporarily unavailable
+                  Cloud sync unavailable - using local storage
+                </div>
+              )}
+              {lastError && (
+                <div className="text-xs text-red-600">
+                  Error: {lastError}
                 </div>
               )}
             </div>
