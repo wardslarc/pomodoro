@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface LoginProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -60,14 +59,18 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignup, isLoading }) =
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors({ general: '' }); // Clear previous errors
+    setErrors({ general: '' }); // Clear previous general errors
     
     if (validateForm()) {
       try {
         await onLogin(email, password);
-        // Success - the AuthContext will handle the state update and redirection
+        // Success - the Auth component will handle 2FA flow and redirection
       } catch (error: any) {
-        setErrors({ general: error.message || "Login failed. Please try again." });
+        setErrors({ 
+          general: error.message || "Login failed. Please try again.",
+          email: '',
+          password: ''
+        });
       }
     }
   };

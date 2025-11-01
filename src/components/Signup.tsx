@@ -6,15 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Eye, EyeOff, Mail, Lock, User, Loader2 } from "lucide-react";
 
 interface SignupProps {
-  onSignup: (name: string, email: string, password: string) => void;
+  onSignup: (name: string, email: string, password: string) => Promise<void>;
   onSwitchToLogin: () => void;
-  isLoading?: boolean;
+  isLoading: boolean;
 }
 
 const Signup: React.FC<SignupProps> = ({ 
   onSignup, 
   onSwitchToLogin, 
-  isLoading = false
+  isLoading 
 }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -98,12 +98,23 @@ const Signup: React.FC<SignupProps> = ({
     return !nameError && !emailError && !passwordError && !confirmPasswordError;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors(prev => ({ ...prev, general: "" }));
     
     if (validateForm()) {
-      onSignup(name.trim(), email, password);
+      try {
+        await onSignup(name.trim(), email, password);
+        // Success - the Auth component will handle the state update and redirection
+      } catch (error: any) {
+        setErrors({ 
+          general: error.message || "Signup failed. Please try again.",
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: ''
+        });
+      }
     }
   };
 
@@ -117,6 +128,11 @@ const Signup: React.FC<SignupProps> = ({
         break;
       case "password":
         setPassword(value);
+        // Clear confirm password error when password changes
+        if (touched.confirmPassword && confirmPassword) {
+          const confirmError = validateField("confirmPassword", confirmPassword, value);
+          setErrors(prev => ({ ...prev, confirmPassword: confirmError }));
+        }
         break;
       case "confirmPassword":
         setConfirmPassword(value);
