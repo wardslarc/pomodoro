@@ -79,7 +79,19 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
       return (sessionData as any).sessionId || null;
     }
     
-    return sessionData;
+    // Ensure the sessionId is a string
+    return String(sessionData);
+  };
+
+  const validateSessionId = (sessionId: string | null): boolean => {
+    if (!sessionId) return false;
+    
+    // Check if it's a MongoDB ObjectId (24 hex characters)
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(sessionId);
+    // Check if it's a local session ID
+    const isLocalId = sessionId.startsWith('local-');
+    
+    return isMongoId || isLocalId;
   };
 
   const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
@@ -102,6 +114,15 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        
+        // Extract validation errors if they exist
+        if (errorData.errors && Array.isArray(errorData.errors)) {
+          const validationErrors = errorData.errors.map((err: any) => 
+            `${err.field}: ${err.message}`
+          ).join(', ');
+          throw new Error(`Validation failed: ${validationErrors}`);
+        }
+        
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
@@ -117,7 +138,7 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
   const saveReflectionToDatabase = async (reflectionData: { learnings: string; sessionId: string | null }) => {
     try {
       if (!token) {
-        return null;
+        throw new Error('Authentication required');
       }
 
       const actualSessionId = extractSessionId(reflectionData.sessionId);
@@ -126,11 +147,27 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
         throw new Error('Session ID is required to save reflection');
       }
 
+      // Validate session ID format
+      if (!validateSessionId(actualSessionId)) {
+        throw new Error('Invalid session ID format');
+      }
+
+      // Validate learnings length
+      if (reflectionData.learnings.trim().length === 0) {
+        throw new Error('Learnings content is required');
+      }
+
+      if (reflectionData.learnings.trim().length > 2000) {
+        throw new Error('Learnings must be less than 2000 characters');
+      }
+
       const payload = {
         sessionId: actualSessionId,
-        learnings: reflectionData.learnings,
+        learnings: reflectionData.learnings.trim(),
         createdAt: new Date().toISOString()
       };
+
+      console.log('Saving reflection with payload:', payload);
 
       const data = await apiRequest('/api/reflections', {
         method: 'POST',
@@ -141,11 +178,12 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
       });
       
       if (data.success) {
-        return data.data.reflection._id;
+        return data.data.reflection._id || data.data.reflection.id;
       } else {
         throw new Error(data.message || 'Failed to save reflection');
       }
     } catch (error) {
+      console.error('Error saving reflection:', error);
       throw error;
     }
   };
@@ -158,17 +196,35 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
       return;
     }
 
+    if (learnings.trim().length > 2000) {
+      setError('Reflection must be less than 2000 characters');
+      return;
+    }
+
     setIsSaving(true);
     setError(null);
 
     try {
       const extractedSessionId = extractSessionId(sessionId);
       
+      console.log('Submitting reflection:', {
+        hasUser: !!user,
+        hasToken: !!token,
+        sessionId: extractedSessionId,
+        learningsLength: learnings.trim().length
+      });
+
       // Only save to database if user is logged in and we have a valid session ID
-      if (user && token && extractedSessionId && !extractedSessionId.startsWith('local-')) {
+      if (user && token && extractedSessionId && validateSessionId(extractedSessionId)) {
+        console.log('Attempting to save to cloud...');
         await saveReflectionToDatabase({
           learnings: learnings.trim(),
           sessionId: extractedSessionId
+        });
+        console.log('Successfully saved to cloud');
+      } else {
+        console.log('Saving locally only:', {
+          reason: !user ? 'No user' : !token ? 'No token' : !extractedSessionId ? 'No session ID' : 'Invalid session ID'
         });
       }
 
@@ -183,6 +239,7 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
       setLearnings("");
       onOpenChange(false);
     } catch (error: any) {
+      console.error('Error in handleSubmit:', error);
       setError(error.message || "Failed to save reflection. Please try again.");
     } finally {
       setIsSaving(false);
@@ -224,7 +281,9 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
             >
               What did you learn in this session?
             </Label>
-            <p className="text-xs text-slate-500">1–3 sentences or bullet points</p>
+            <p className="text-xs text-slate-500">
+              1–3 sentences or bullet points ({learnings.length}/2000 characters)
+            </p>
             <Textarea
               ref={textareaRef}
               id="learnings"
@@ -234,17 +293,24 @@ const ReflectionModal: React.FC<ReflectionModalProps> = ({
               className="min-h-[200px] resize-none font-normal"
               required
               disabled={isSaving}
+              maxLength={2000}
             />
+            <div className="text-xs text-slate-500 text-right">
+              {learnings.length}/2000 characters
+            </div>
           </div>
 
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-800 font-medium">Error: {error}</p>
+              <p className="text-xs text-red-600 mt-1">
+                If this continues, try refreshing the page or check your connection.
+              </p>
             </div>
           )}
 
           <div className="text-xs text-muted-foreground">
-            {user ? (
+            {user && token ? (
               <span className="text-green-600">✓ Reflections will be saved to your cloud account</span>
             ) : (
               <span className="text-amber-600">⚠ Sign in to save reflections permanently</span>
