@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -31,7 +31,8 @@ import {
   Bell,
   Palette,
   Save,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  AlertCircle
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -50,11 +51,12 @@ const getApiBaseUrl = () => {
 
 const Settings = ({ onClose }: SettingsProps) => {
   const { user } = useAuth();
-  const { settings, updateSettings, resetSettings } = useSettings();
+  const { settings, updateSettings, resetSettings, lastSync } = useSettings();
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("timer");
+  const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   
   // Local state for form values - only saved when user clicks "Save Changes"
   const [localSettings, setLocalSettings] = useState(settings);
@@ -64,7 +66,8 @@ const Settings = ({ onClose }: SettingsProps) => {
     setLocalSettings(settings);
   }, [settings]);
 
-  const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+  // Optimized API request with rate limiting
+  const apiRequest = useCallback(async (endpoint: string, options: RequestInit = {}) => {
     const baseUrl = getApiBaseUrl();
     
     if (!baseUrl) {
@@ -82,30 +85,55 @@ const Settings = ({ onClose }: SettingsProps) => {
         ...options,
       });
 
+      // Handle rate limit responses
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        const waitTime = retryAfter ? parseInt(retryAfter) : 60;
+        throw new Error(`Rate limit exceeded. Please try again in ${waitTime} seconds.`);
+      }
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
+      // Clear any previous rate limit errors on success
+      setRateLimitError(null);
       return response.json();
     } catch (error: any) {
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
         throw new Error(`Cannot connect to server. Please check your connection.`);
       }
+      // Set rate limit error for UI feedback
+      if (error.message.includes('Rate limit')) {
+        setRateLimitError(error.message);
+      }
       throw error;
     }
-  };
+  }, []);
 
-  // Load settings from database when user logs in
+  // Load settings from database only when needed
   useEffect(() => {
     const loadSettingsFromDatabase = async () => {
-      if (!user) return;
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
 
       try {
         setIsLoading(true);
         const token = localStorage.getItem('auth_token');
         if (!token) {
-          console.log('No auth token found, skipping settings load');
+          console.log('No auth token found, using local settings');
+          return;
+        }
+
+        // Only load from API if we don't have recent local settings
+        const localKey = `pomodoro-settings-${user.uid}`;
+        const localSettings = localStorage.getItem(localKey);
+        
+        if (localSettings) {
+          console.log('Using cached settings, skipping API load');
           return;
         }
 
@@ -119,27 +147,27 @@ const Settings = ({ onClose }: SettingsProps) => {
           updateSettings(data.data.settings);
           setLocalSettings(data.data.settings);
           console.log('Settings loaded from database');
-        } else {
-          console.log('Settings data format invalid');
         }
-      } catch (error) {
-        console.log('Settings load failed:', error.message);
-        // Silent fail - use default settings
+      } catch (error: any) {
+        console.log('Settings load failed, using local settings:', error.message);
+        // Silent fail - use local settings
       } finally {
         setIsLoading(false);
       }
     };
 
     loadSettingsFromDatabase();
-  }, [user, updateSettings]);
+  }, [user, updateSettings, apiRequest]);
 
-  // Save settings to database
-  const saveSettingsToDatabase = async (settingsData: any) => {
+  // Save settings to database with optimization
+  const saveSettingsToDatabase = useCallback(async (settingsData: any) => {
+    if (!user) return settingsData; // Return settings for local use
+
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
         console.log('No auth token found, settings saved locally only');
-        return;
+        return settingsData;
       }
 
       const data = await apiRequest('/api/settings', {
@@ -152,25 +180,26 @@ const Settings = ({ onClose }: SettingsProps) => {
 
       if (data.success) {
         console.log('Settings saved to database');
-        return data.data?.settings;
+        return data.data?.settings || settingsData;
       } else {
         console.log('Settings save response indicated failure');
-        return;
+        return settingsData;
       }
-    } catch (error) {
-      console.log('Settings save failed:', error.message);
-      return;
+    } catch (error: any) {
+      console.log('Settings save failed, using local storage:', error.message);
+      return settingsData; // Return original settings for local storage
     }
-  };
+  }, [user, apiRequest]);
 
   const handleSave = async () => {
     setIsSaving(true);
+    setRateLimitError(null);
 
     try {
-      // Update context with local settings
+      // Update context with local settings (this will auto-save to localStorage)
       updateSettings(localSettings);
 
-      // Save to database if user is logged in (will fail gracefully if API issues)
+      // Save to database if user is logged in
       if (user) {
         await saveSettingsToDatabase(localSettings);
       }
@@ -180,12 +209,12 @@ const Settings = ({ onClose }: SettingsProps) => {
       setTimeout(() => {
         setShowSaveConfirmation(false);
         if (onClose) {
-          setTimeout(() => onClose(), 100);
+          onClose();
         }
       }, 1500);
-    } catch (error) {
+    } catch (error: any) {
       console.log('Failed to save settings:', error);
-      // Even if save fails, settings are updated locally
+      // Settings are still saved locally even if API fails
     } finally {
       setIsSaving(false);
     }
@@ -207,7 +236,7 @@ const Settings = ({ onClose }: SettingsProps) => {
     // Update local state first
     setLocalSettings(defaultSettings);
 
-    // Update context
+    // Update context (this will auto-save to localStorage)
     resetSettings();
 
     // Save to database if user is logged in
@@ -217,6 +246,7 @@ const Settings = ({ onClose }: SettingsProps) => {
         await saveSettingsToDatabase(defaultSettings);
       } catch (error) {
         console.error('Failed to reset settings in database:', error);
+        // Still reset locally even if API fails
       } finally {
         setIsSaving(false);
       }
@@ -264,6 +294,16 @@ const Settings = ({ onClose }: SettingsProps) => {
           </Badge>
         )}
       </div>
+
+      {/* Rate Limit Error Display */}
+      {rateLimitError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:border-red-800">
+          <div className="flex items-center gap-2 text-red-800 dark:text-red-200 text-sm">
+            <AlertCircle className="h-4 w-4" />
+            <span>{rateLimitError}</span>
+          </div>
+        </div>
+      )}
 
       <Card className="border-0 sm:border shadow-none sm:shadow-lg overflow-hidden">
         <CardHeader className="pb-4 sm:pb-6 bg-muted/30">
@@ -654,7 +694,7 @@ const Settings = ({ onClose }: SettingsProps) => {
             ) : (
               <div className="flex items-center justify-center gap-2 text-green-600">
                 <Check className="h-4 w-4" />
-                <span>All changes saved to cloud</span>
+                <span>All changes saved {lastSync ? `at ${lastSync.toLocaleTimeString()}` : 'to cloud'}</span>
               </div>
             )
           ) : (

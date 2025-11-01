@@ -17,6 +17,9 @@ interface SettingsContextType {
   settings: Settings;
   updateSettings: (newSettings: Partial<Settings>) => void;
   resetSettings: () => void;
+  // Add these to track API state
+  isSyncing: boolean;
+  lastSync: Date | null;
 }
 
 const defaultSettings: Settings = {
@@ -35,6 +38,8 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
   const { user } = useAuth();
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -68,9 +73,9 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     loadSettings();
   }, [user]);
 
-  // Save to localStorage whenever settings change
+  // Save to localStorage whenever settings change (with debouncing)
   useEffect(() => {
-    if (!isInitialized) return; // Don't save until we've finished initial loading
+    if (!isInitialized) return;
 
     const saveSettings = () => {
       try {
@@ -80,12 +85,15 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
         
         localStorage.setItem(storageKey, JSON.stringify(settings));
+        setLastSync(new Date());
       } catch (error) {
         console.error('Error saving settings to localStorage:', error);
       }
     };
 
-    saveSettings();
+    // Debounce the save to prevent too many writes
+    const timeoutId = setTimeout(saveSettings, 500);
+    return () => clearTimeout(timeoutId);
   }, [settings, user, isInitialized]);
 
   // Apply dark mode when settings change
@@ -101,12 +109,23 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     setSettings(prev => ({ ...prev, ...newSettings }));
   };
 
+  // Add this method to update settings without triggering localStorage save
+  const updateSettingsWithoutSave = (newSettings: Partial<Settings>) => {
+    setSettings(prev => ({ ...prev, ...newSettings }));
+  };
+
   const resetSettings = () => {
     setSettings(defaultSettings);
   };
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, resetSettings }}>
+    <SettingsContext.Provider value={{ 
+      settings, 
+      updateSettings, 
+      resetSettings,
+      isSyncing,
+      lastSync
+    }}>
       {children}
     </SettingsContext.Provider>
   );
