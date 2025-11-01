@@ -15,9 +15,9 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  build: {
-    outDir: "dist", // 👈 this is the key part
-  },
+build: {
+  outDir: "build", // ✅ change from 'dist' to 'build'
+},
   server: {
     allowedHosts: true,
   },
