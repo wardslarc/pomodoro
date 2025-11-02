@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, Loader2, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface LoginProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -20,6 +21,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignup, isLoading }) =
     email: false, 
     password: false 
   });
+  
+  const navigate = useNavigate();
+
+  const handleGoBack = () => {
+    navigate("/");
+  };
 
   const validateField = (name: string, value: string) => {
     switch (name) {
@@ -94,7 +101,19 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignup, isLoading }) =
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm shadow-xl border-0">
-        <CardHeader className="text-center space-y-2">
+        <CardHeader className="text-center space-y-2 relative">
+          {/* Go Back Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleGoBack}
+            className="absolute left-0 top-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+            disabled={isLoading}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          
           <div className="mx-auto w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
             <Lock className="h-6 w-6 text-white" />
           </div>
@@ -139,6 +158,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToSignup, isLoading }) =
                   variant="link"
                   className="p-0 h-auto text-xs text-blue-600 hover:text-blue-700"
                   type="button"
+                  disabled={isLoading}
                 >
                   Forgot password?
                 </Button>
