@@ -14,7 +14,7 @@ const ContactContent: React.FC = () => {
           Get in touch with our support team
         </DialogDescription>
       </DialogHeader>
-      <div className="space-y-6 text-sm leading-relaxed">
+      <div className="space-y-6 text-sm leading-relaxed overflow-auto max-h-[60vh] pr-4">
         <section>
           <h3 className="font-semibold text-lg mb-3">Support and General Inquiries</h3>
           <p>We're here to help with any questions, feedback, or issues you may have:</p>

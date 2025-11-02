@@ -75,6 +75,9 @@ const TermsAndConditions: React.FC = () => {
             <li>Engaging in any activity that could damage, disable, overburden, or impair the Service</li>
             <li>Collecting or harvesting any information from the Service</li>
             <li>Using any automated systems, including "robots," "spiders," or "offline readers"</li>
+            <li>Engaging in any form of harassment, hate speech, or discriminatory behavior</li>
+            <li>Sharing or distributing inappropriate, obscene, or adult content</li>
+            <li>Promoting violence, illegal activities, or dangerous behavior</li>
           </ul>
         </section>
 
@@ -107,6 +110,8 @@ const TermsAndConditions: React.FC = () => {
             <li>User Content does not infringe any third-party rights</li>
             <li>User Content complies with all applicable laws and regulations</li>
             <li>User Content does not contain harmful, offensive, or illegal material</li>
+            <li>User Content does not contain malicious code, viruses, or other harmful components</li>
+            <li>User Content does not promote violence, hate speech, or illegal activities</li>
           </ul>
           <p className="mt-2">
             We reserve the right to remove any User Content that violates these Terms
@@ -115,7 +120,21 @@ const TermsAndConditions: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">7. Service Availability and Modifications</h3>
+          <h3 className="font-semibold text-lg mb-2">7. Third-Party Services and Advertising</h3>
+          <p>
+            Our Service may display advertisements from third parties, including Google AdSense.
+            These third parties may use cookies and similar technologies to collect information
+            about your use of the Service and other websites to provide you with relevant advertising.
+          </p>
+          <p className="mt-2">
+            We are not responsible for the content of third-party advertisements or the practices
+            of advertising networks. Your interactions with advertisers found through the Service
+            are solely between you and the advertiser.
+          </p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-lg mb-2">8. Service Availability and Modifications</h3>
           <p>
             We strive to maintain the availability of the Service but do not
             guarantee uninterrupted access. We may modify, suspend, or discontinue
@@ -127,7 +146,7 @@ const TermsAndConditions: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">8. Termination</h3>
+          <h3 className="font-semibold text-lg mb-2">9. Termination</h3>
           <p>
             We may terminate or suspend your account and access to the Service
             immediately, without prior notice or liability, for any reason,
@@ -140,7 +159,7 @@ const TermsAndConditions: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">9. Disclaimer of Warranties</h3>
+          <h3 className="font-semibold text-lg mb-2">10. Disclaimer of Warranties</h3>
           <p>
             THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES
             OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
@@ -152,7 +171,7 @@ const TermsAndConditions: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">10. Limitation of Liability</h3>
+          <h3 className="font-semibold text-lg mb-2">11. Limitation of Liability</h3>
           <p>
             TO THE FULLEST EXTENT PERMITTED BY LAW, IN NO EVENT SHALL REFLECTIVE
             POMODORO, ITS DIRECTORS, EMPLOYEES, PARTNERS, AGENTS, SUPPLIERS, OR
@@ -164,7 +183,7 @@ const TermsAndConditions: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">11. Indemnification</h3>
+          <h3 className="font-semibold text-lg mb-2">12. Indemnification</h3>
           <p>
             You agree to defend, indemnify, and hold harmless Reflective Pomodoro
             and its licensors from and against any claims, damages, obligations,
@@ -175,11 +194,12 @@ const TermsAndConditions: React.FC = () => {
             <li>Your violation of any term of these Terms</li>
             <li>Your violation of any third-party right, including privacy or intellectual property rights</li>
             <li>Any content you post or transmit through the Service</li>
+            <li>Your violation of any applicable laws or regulations</li>
           </ul>
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">12. Governing Law and Jurisdiction</h3>
+          <h3 className="font-semibold text-lg mb-2">13. Governing Law and Jurisdiction</h3>
           <p>
             These Terms shall be governed and construed in accordance with the laws
             of the United States, without regard to its conflict of law provisions.
@@ -191,7 +211,7 @@ const TermsAndConditions: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">13. Severability</h3>
+          <h3 className="font-semibold text-lg mb-2">14. Severability</h3>
           <p>
             If any provision of these Terms is held to be invalid or unenforceable
             by a court, the remaining provisions of these Terms will remain in
@@ -201,7 +221,7 @@ const TermsAndConditions: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">14. Entire Agreement</h3>
+          <h3 className="font-semibold text-lg mb-2">15. Entire Agreement</h3>
           <p>
             These Terms constitute the entire agreement between you and Reflective
             Pomodoro regarding our Service and supersede and replace any prior
@@ -210,7 +230,7 @@ const TermsAndConditions: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">15. Contact Information</h3>
+          <h3 className="font-semibold text-lg mb-2">16. Contact Information</h3>
           <p>
             If you have any questions about these Terms, please contact us at:
           </p>

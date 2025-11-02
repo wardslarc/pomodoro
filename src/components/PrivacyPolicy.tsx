@@ -33,6 +33,7 @@ const PrivacyPolicy: React.FC = () => {
             <li><strong>Reflection Content:</strong> Your written reflections and learning insights are stored securely</li>
             <li><strong>Usage Data:</strong> We collect information about how you interact with our Service, including device information, browser type, pages visited, and time spent on features</li>
             <li><strong>Technical Data:</strong> IP addresses, cookies, and similar tracking technologies for security and functionality</li>
+            <li><strong>Advertising Data:</strong> Information about your interactions with advertisements displayed on our Service</li>
           </ul>
         </section>
 
@@ -47,6 +48,7 @@ const PrivacyPolicy: React.FC = () => {
             <li>To monitor and analyze usage patterns to enhance user experience</li>
             <li>To detect, prevent, and address technical issues and security vulnerabilities</li>
             <li>To comply with legal obligations and enforce our terms of service</li>
+            <li>To display personalized advertisements through third-party advertising networks like Google AdSense</li>
           </ul>
         </section>
 
@@ -84,6 +86,7 @@ const PrivacyPolicy: React.FC = () => {
             <li><strong>Preference Cookies:</strong> Used to remember your settings and preferences</li>
             <li><strong>Security Cookies:</strong> Used for security purposes and authentication</li>
             <li><strong>Analytics Cookies:</strong> Used to understand how users interact with our Service</li>
+            <li><strong>Advertising Cookies:</strong> Used to serve you relevant advertisements and measure ad performance</li>
           </ul>
           <p className="mt-2">
             You can instruct your browser to refuse all cookies or to indicate when a
@@ -93,19 +96,47 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">6. Third-Party Services</h3>
+          <h3 className="font-semibold text-lg mb-2">6. Third-Party Services and Advertising</h3>
           <p>
             We may employ third-party companies and individuals to facilitate our
             Service ("Service Providers"), provide the Service on our behalf,
             perform Service-related services, or assist us in analyzing how our
-            Service is used. These third parties have access to your Personal
-            Information only to perform these tasks on our behalf and are obligated
-            not to disclose or use it for any other purpose.
+            Service is used.
+          </p>
+          <p className="mt-2">
+            <strong>Advertising Partners:</strong> We use third-party advertising companies, including Google AdSense, 
+            to serve ads when you use our Service. These companies may use information about your visits to this 
+            and other websites in order to provide relevant advertisements about goods and services that may interest you.
+          </p>
+          <p className="mt-2">
+            <strong>Google AdSense:</strong> We use Google AdSense to display ads on our Service. Google uses cookies 
+            to serve ads based on your prior visits to our Service or other websites. Google's use of advertising 
+            cookies enables it and its partners to serve ads to you based on your visit to our sites and/or other 
+            sites on the Internet.
+          </p>
+          <p className="mt-2">
+            You may opt out of personalized advertising by visiting Google's Ads Settings. Alternatively, you can 
+            opt out of a third-party vendor's use of cookies for personalized advertising by visiting www.aboutads.info.
           </p>
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">7. Your Data Rights</h3>
+          <h3 className="font-semibold text-lg mb-2">7. Data Sharing and Disclosure</h3>
+          <p>We may share your information in the following circumstances:</p>
+          <ul className="list-disc list-inside space-y-1 mt-2 ml-4">
+            <li><strong>Service Providers:</strong> With trusted third parties who assist us in operating our Service</li>
+            <li><strong>Advertising Partners:</strong> With advertising networks like Google AdSense to display relevant ads</li>
+            <li><strong>Legal Requirements:</strong> When required by law or to protect our rights and safety</li>
+            <li><strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets</li>
+            <li><strong>Analytics:</strong> With analytics providers to understand usage patterns and improve our Service</li>
+          </ul>
+          <p className="mt-2">
+            We do not sell your personal information to third parties for their marketing purposes without your explicit consent.
+          </p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-lg mb-2">8. Your Data Rights</h3>
           <p>You have the following rights regarding your personal data:</p>
           <ul className="list-disc list-inside space-y-1 mt-2 ml-4">
             <li><strong>Access:</strong> You can request copies of your personal data</li>
@@ -114,6 +145,7 @@ const PrivacyPolicy: React.FC = () => {
             <li><strong>Restriction:</strong> You can request limitation of processing your data</li>
             <li><strong>Portability:</strong> You can request transfer of your data to another organization</li>
             <li><strong>Objection:</strong> You can object to our processing of your personal data</li>
+            <li><strong>Opt-Out:</strong> You can opt out of personalized advertising and certain data collection</li>
           </ul>
           <p className="mt-2">
             To exercise these rights, please contact us using the information provided below.
@@ -121,7 +153,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">8. International Data Transfers</h3>
+          <h3 className="font-semibold text-lg mb-2">9. International Data Transfers</h3>
           <p>
             Your information may be transferred to — and maintained on — computers
             located outside of your state, province, country, or other governmental
@@ -133,7 +165,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">9. Children's Privacy</h3>
+          <h3 className="font-semibold text-lg mb-2">10. Children's Privacy</h3>
           <p>
             Our Service does not address anyone under the age of 13 ("Children").
             We do not knowingly collect personally identifiable information from
@@ -146,7 +178,36 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">10. Changes to This Privacy Policy</h3>
+          <h3 className="font-semibold text-lg mb-2">11. California Privacy Rights</h3>
+          <p>
+            If you are a California resident, you have the right to request information 
+            about how we share certain categories of personal information with third 
+            parties for their direct marketing purposes. California law gives you the 
+            right to request the categories and specific pieces of personal information 
+            we have collected about you, the categories of sources from which we collect 
+            personal information, and the business purposes for collecting personal information.
+          </p>
+          <p className="mt-2">
+            To make such a request, please contact us using the information below.
+          </p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-lg mb-2">12. GDPR Compliance (For EU Users)</h3>
+          <p>
+            For users in the European Union, we comply with the General Data Protection 
+            Regulation (GDPR). We process your personal data only when we have a legal 
+            basis for doing so, including: your consent, the performance of a contract, 
+            or our legitimate interests.
+          </p>
+          <p className="mt-2">
+            You have the right to withdraw consent at any time, without affecting the 
+            lawfulness of processing based on consent before its withdrawal.
+          </p>
+        </section>
+
+        <section>
+          <h3 className="font-semibold text-lg mb-2">13. Changes to This Privacy Policy</h3>
           <p>
             We may update our Privacy Policy from time to time. We will notify you
             of any changes by posting the new Privacy Policy on this page and
@@ -157,7 +218,7 @@ const PrivacyPolicy: React.FC = () => {
         </section>
 
         <section>
-          <h3 className="font-semibold text-lg mb-2">11. Contact Us</h3>
+          <h3 className="font-semibold text-lg mb-2">14. Contact Us</h3>
           <p>
             If you have any questions about this Privacy Policy, your data rights,
             or wish to exercise any of your data protection rights, please contact us at:
