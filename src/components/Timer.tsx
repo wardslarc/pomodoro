@@ -139,6 +139,72 @@ const Timer = ({
     }
   };
 
+  const showNotification = useCallback((title: string, body: string) => {
+    // Browser notification
+    if ("Notification" in window) {
+      if (Notification.permission === "granted") {
+        const notification = new Notification(title, { 
+          body, 
+          icon: "/favicon.ico",
+          requireInteraction: true
+        });
+        
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+      } else if (Notification.permission === "default") {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            const notification = new Notification(title, { 
+              body, 
+              icon: "/favicon.ico",
+              requireInteraction: true
+            });
+            
+            notification.onclick = () => {
+              window.focus();
+              notification.close();
+            };
+          }
+        });
+      }
+    }
+
+    // Audio notification
+    if (settings.notificationSound !== "none") {
+      const audio = new Audio("/notification.mp3");
+      audio.volume = settings.volume / 100;
+      audio.play().catch(() => {
+        console.log("Audio notification blocked by browser");
+      });
+    }
+
+    // Automatically focus the tab when timer completes
+    setTimeout(() => {
+      if (document.hidden) {
+        window.focus();
+        
+        // Fallback: flash the title if notifications aren't available
+        if (!("Notification" in window) || Notification.permission !== "granted") {
+          let originalTitle = document.title;
+          let flashCount = 0;
+          const flashInterval = setInterval(() => {
+            document.title = flashCount % 2 === 0 
+              ? "⏰ TIMER COMPLETE! ⏰" 
+              : originalTitle;
+            flashCount++;
+            if (flashCount >= 6) {
+              clearInterval(flashInterval);
+              document.title = originalTitle;
+            }
+          }, 500);
+        }
+      }
+    }, 100);
+
+  }, [settings.notificationSound, settings.volume]);
+
   const handleTimerComplete = useCallback(async (wasSkipped = false) => {
     if (completionLockRef.current) {
       return;
@@ -160,19 +226,10 @@ const Timer = ({
       }
 
       if (!wasSkipped) {
-        if (settings.notificationSound !== "none") {
-          const audio = new Audio("/notification.mp3");
-          audio.volume = settings.volume / 100;
-          audio.play().catch(() => {});
-        }
-
-        if (Notification.permission === "granted") {
-          new Notification("Pomodoro Timer", {
-            body: "Work session complete! Time for a break.",
-          });
-        } else if (Notification.permission === "default") {
-          Notification.requestPermission();
-        }
+        showNotification(
+          "Pomodoro Timer", 
+          "Work session complete! Time for a break."
+        );
       }
 
       const totalDuration = getTotalDuration();
@@ -260,7 +317,7 @@ const Timer = ({
         completionLockRef.current = false;
       }, 100);
     }
-  }, [settings, onSessionComplete, user, token, timeLeft, getTotalDuration]);
+  }, [settings, onSessionComplete, user, token, timeLeft, getTotalDuration, showNotification]);
 
   useEffect(() => {
     handleTimerCompleteRef.current = handleTimerComplete;
@@ -395,6 +452,85 @@ const Timer = ({
     };
   }, [isRunning]);
 
+  // Add this new useEffect to handle background tab counting
+  useEffect(() => {
+    if (!isRunning || !endTimeRef.current) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab became hidden - switch to interval-based updates for background
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = undefined;
+        }
+
+        const backgroundInterval = setInterval(() => {
+          if (!endTimeRef.current) {
+            clearInterval(backgroundInterval);
+            return;
+          }
+
+          const now = Date.now();
+          const timeRemaining = Math.max(0, Math.floor((endTimeRef.current - now) / 1000));
+          
+          setTimeLeft(timeRemaining);
+
+          if (timeRemaining <= 0) {
+            clearInterval(backgroundInterval);
+            setIsRunning(false);
+            endTimeRef.current = null;
+            setTimeout(() => {
+              handleTimerCompleteRef.current();
+            }, 100);
+          }
+        }, 1000);
+
+        return () => clearInterval(backgroundInterval);
+      } else {
+        // Tab became visible - switch back to animation frames
+        if (!animationFrameRef.current && isRunning && endTimeRef.current) {
+          let lastTime = Date.now();
+          let completionTriggered = false;
+          
+          const updateTimer = () => {
+            const now = Date.now();
+            const delta = now - lastTime;
+            lastTime = now;
+
+            if (!endTimeRef.current || completionTriggered) {
+              animationFrameRef.current = requestAnimationFrame(updateTimer);
+              return;
+            }
+
+            const timeRemaining = Math.max(0, Math.floor((endTimeRef.current - now) / 1000));
+            
+            setTimeLeft(timeRemaining);
+
+            if (timeRemaining <= 0 && !completionTriggered) {
+              completionTriggered = true;
+              setIsRunning(false);
+              endTimeRef.current = null;
+              
+              setTimeout(() => {
+                handleTimerCompleteRef.current();
+              }, 100);
+            } else {
+              animationFrameRef.current = requestAnimationFrame(updateTimer);
+            }
+          };
+
+          animationFrameRef.current = requestAnimationFrame(updateTimer);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isRunning]);
+
   useEffect(() => {
     const totalDuration = getTotalDuration();
     const newProgress = ((totalDuration - timeLeft) / totalDuration) * 100;
@@ -410,15 +546,23 @@ const Timer = ({
   useEffect(() => {
     if (isLoading) return;
 
-    const formattedTime = formatTime(timeLeft);
+    const updateTitle = () => {
+      const formattedTime = formatTime(timeLeft);
+      
+      if (isRunning) {
+        document.title = `⏱️ ${formattedTime} - ${sessionType === "work" ? "Focus" : "Break"} Time`;
+      } else {
+        document.title = `⏸️ ${formattedTime} - Paused (${sessionType === "work" ? "Focus" : "Break"})`;
+      }
+    };
 
-    if (isRunning) {
-      document.title = `⏱️ ${formattedTime} - ${sessionType === "work" ? "Focus" : "Break"} Time`;
-    } else {
-      document.title = `⏸️ ${formattedTime} - Paused (${sessionType === "work" ? "Focus" : "Break"})`;
-    }
+    updateTitle();
+
+    // Set up interval to update title even when tab is not active
+    const titleInterval = setInterval(updateTitle, 1000);
 
     return () => {
+      clearInterval(titleInterval);
       document.title = "Reflective Pomodoro";
     };
   }, [timeLeft, isRunning, sessionType, isLoading]);
