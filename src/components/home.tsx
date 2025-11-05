@@ -437,28 +437,54 @@ const Home = () => {
         </Tabs>
       </main>
 
-      <section className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-white text-blue-900 py-12 md:py-20 px-4 md:px-8 mt-12 md:mt-16">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-6 md:mb-8">About Reflective Pomodoro</h2>
-          <p className="text-lg md:text-xl leading-relaxed mb-6 md:mb-8">
-            <span className="font-semibold">Reflective Pomodoro</span> combines focused work intervals with intentional self-reflection.
-          </p>
-          <h3 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">How to Use</h3>
-          <ul className="text-base md:text-lg leading-relaxed space-y-3 md:space-y-4 text-left max-w-3xl mx-auto">
-            <li>• Start a session using the timer and focus on a single task</li>
-            <li>• Reflect after completion and log your insights</li>
-            <li>• Review your Dashboard to visualize progress</li>
-            <li>• Repeat the cycle to maintain focus</li>
-          </ul>
-          <h3 className="text-2xl md:text-3xl font-bold mt-8 md:mt-12 mb-4 md:mb-6">Key Features</h3>
-          <ul className="text-base md:text-lg leading-relaxed space-y-3 md:space-y-4 text-left max-w-3xl mx-auto">
-            <li>• Reflection Recording: Log insights after each session</li>
-            <li>• Session Timer: Customizable intervals</li>
-            <li>• Dashboard Analytics: Visualize productivity trends</li>
-            <li>• Personalization: Adjust session lengths and notifications</li>
-          </ul>
-        </div>
-      </section>
+     <section className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-white text-blue-900 py-12 md:py-20 px-4 md:px-8 mt-12 md:mt-16">
+  <div className="max-w-5xl mx-auto text-center">
+    <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-6 md:mb-8">
+      About Reflective Pomodoro
+    </h2>
+    <p className="text-lg md:text-xl leading-relaxed mb-6 md:mb-8">
+      <span className="font-semibold">Reflective Pomodoro</span> combines focused work intervals with intentional self-reflection. 
+      It’s designed to help you maintain deep focus, track your growth, and gain valuable insights into your productivity habits.
+    </p>
+
+    <h3 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">How to Use</h3>
+    <ul className="text-base md:text-lg leading-relaxed space-y-3 md:space-y-4 text-left max-w-3xl mx-auto">
+      <li>• Start a session using the timer and focus on a single task</li>
+      <li>• Reflect after completion and log your insights</li>
+      <li>• Review your Dashboard to visualize progress and session stats</li>
+      <li>• Check the Leaderboard to see how you rank among other users</li>
+      <li>• Repeat the cycle to continuously improve your focus and discipline</li>
+    </ul>
+
+    <h3 className="text-2xl md:text-3xl font-bold mt-8 md:mt-12 mb-4 md:mb-6">Key Features</h3>
+    <ul className="text-base md:text-lg leading-relaxed space-y-3 md:space-y-4 text-left max-w-3xl mx-auto">
+      <li>
+        • <span className="font-semibold">Reflection Recording:</span> Log personal insights after each session to understand patterns and emotions tied to your productivity.
+      </li>
+      <li>
+        • <span className="font-semibold">Session Timer:</span> Customize work and break intervals to fit your ideal rhythm.
+      </li>
+      <li>
+        • <span className="font-semibold">Dashboard Analytics:</span> View a detailed breakdown of your sessions, reflections, and consistency through charts and progress visuals.
+      </li>
+      <li>
+        • <span className="font-semibold">Leaderboard:</span> Compete with others or track your personal bests—earn points for consistent reflections and completed sessions.
+      </li>
+      <li>
+        • <span className="font-semibold">Personalization:</span> Tailor your experience by adjusting session lengths, themes, and notification preferences.
+      </li>
+      <li>
+        • <span className="font-semibold">Cloud Sync:</span> Keep your reflections and progress accessible across all devices securely.
+      </li>
+    </ul>
+
+    <p className="text-lg md:text-xl leading-relaxed mt-10 md:mt-12 max-w-3xl mx-auto">
+      Reflective Pomodoro turns productivity into a journey of self-awareness—helping you not only get more done, 
+      but also understand <span className="font-semibold">why and how</span> you work best.
+    </p>
+  </div>
+</section>
+
 
       <Dialog open={openModal !== null} onOpenChange={handleModalOpenChange}>
         <DialogContent className={`${getModalSize(openModal)} max-h-[90vh] overflow-hidden ${settings.darkMode ? "bg-slate-800 text-white" : "bg-blue-100 text-blue-900"}`}>
