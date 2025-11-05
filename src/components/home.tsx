@@ -437,53 +437,70 @@ const Home = () => {
         </Tabs>
       </main>
 
-     <section className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-white text-blue-900 py-12 md:py-20 px-4 md:px-8 mt-12 md:mt-16">
+ <section className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-white text-blue-900 py-12 md:py-20 px-4 md:px-8 mt-12 md:mt-16">
   <div className="max-w-5xl mx-auto text-center">
     <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-6 md:mb-8">
       About Reflective Pomodoro
     </h2>
+
     <p className="text-lg md:text-xl leading-relaxed mb-6 md:mb-8">
-      <span className="font-semibold">Reflective Pomodoro</span> combines focused work intervals with intentional self-reflection. 
-      It’s designed to help you maintain deep focus, track your growth, and gain valuable insights into your productivity habits.
+      <span className="font-semibold">Reflective Pomodoro</span> is more than just a productivity timer—it’s a mindful system designed to help you balance focus and reflection. 
+      Built on the foundation of the classic Pomodoro Technique, it encourages you to work with intention, pause with purpose, 
+      and learn from your habits over time. Whether you’re studying, working on creative projects, or managing complex tasks, 
+      Reflective Pomodoro helps you build consistency and emotional awareness in every session.
     </p>
 
     <h3 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">How to Use</h3>
     <ul className="text-base md:text-lg leading-relaxed space-y-3 md:space-y-4 text-left max-w-3xl mx-auto">
-      <li>• Start a session using the timer and focus on a single task</li>
-      <li>• Reflect after completion and log your insights</li>
-      <li>• Review your Dashboard to visualize progress and session stats</li>
-      <li>• Check the Leaderboard to see how you rank among other users</li>
-      <li>• Repeat the cycle to continuously improve your focus and discipline</li>
+      <li>• Begin by selecting your task and starting a focused session using the built-in timer.</li>
+      <li>• Work deeply and avoid distractions until the timer ends.</li>
+      <li>• After each session, take a few moments to reflect on your experience—record thoughts, challenges, and successes.</li>
+      <li>• Review your personalized <span className="font-semibold">Dashboard</span> to visualize your focus trends and track your improvement over time.</li>
+      <li>• Check the <span className="font-semibold">Leaderboard</span> to compare your progress with friends, colleagues, or the global community.</li>
+      <li>• Repeat and refine your routine—each reflection helps you understand your optimal working style and sustain long-term productivity.</li>
     </ul>
 
     <h3 className="text-2xl md:text-3xl font-bold mt-8 md:mt-12 mb-4 md:mb-6">Key Features</h3>
     <ul className="text-base md:text-lg leading-relaxed space-y-3 md:space-y-4 text-left max-w-3xl mx-auto">
       <li>
-        • <span className="font-semibold">Reflection Recording:</span> Log personal insights after each session to understand patterns and emotions tied to your productivity.
+        • <span className="font-semibold">Reflection Recording:</span> Capture your thoughts and emotions after each Pomodoro. 
+        Identify recurring patterns, triggers, and insights that influence your productivity and motivation.
       </li>
       <li>
-        • <span className="font-semibold">Session Timer:</span> Customize work and break intervals to fit your ideal rhythm.
+        • <span className="font-semibold">Smart Session Timer:</span> Set customizable work and break intervals that adapt to your personal rhythm, 
+        ensuring balance between deep work and mindful rest.
       </li>
       <li>
-        • <span className="font-semibold">Dashboard Analytics:</span> View a detailed breakdown of your sessions, reflections, and consistency through charts and progress visuals.
+        • <span className="font-semibold">Comprehensive Dashboard:</span> Analyze detailed charts and metrics that reveal your focus streaks, 
+        daily averages, and emotional reflections—all in one clean visual overview.
       </li>
       <li>
-        • <span className="font-semibold">Leaderboard:</span> Compete with others or track your personal bests—earn points for consistent reflections and completed sessions.
+        • <span className="font-semibold">Leaderboard & Rewards:</span> Stay motivated by earning points for completed sessions and consistent reflections. 
+        Climb the leaderboard, unlock badges, and celebrate your progress.
       </li>
       <li>
-        • <span className="font-semibold">Personalization:</span> Tailor your experience by adjusting session lengths, themes, and notification preferences.
+        • <span className="font-semibold">Customization & Themes:</span> Personalize your workspace with light or dark themes, sound alerts, 
+        and adjustable Pomodoro durations to suit your workflow.
       </li>
       <li>
-        • <span className="font-semibold">Cloud Sync:</span> Keep your reflections and progress accessible across all devices securely.
+        • <span className="font-semibold">Cloud Sync & Security:</span> Access your reflections, analytics, and session history across all devices 
+        with seamless cloud synchronization and secure data storage.
+      </li>
+      <li>
+        • <span className="font-semibold">Community Insights (coming soon):</span> Discover anonymized insights and shared reflections from users around the world 
+        to gain inspiration and perspective on productivity patterns.
       </li>
     </ul>
 
     <p className="text-lg md:text-xl leading-relaxed mt-10 md:mt-12 max-w-3xl mx-auto">
-      Reflective Pomodoro turns productivity into a journey of self-awareness—helping you not only get more done, 
-      but also understand <span className="font-semibold">why and how</span> you work best.
+      <span className="font-semibold">Reflective Pomodoro</span> transforms everyday work into a meaningful journey of growth. 
+      It helps you not only get things done—but understand <span className="font-semibold">how</span> you work best, 
+      <span className="font-semibold">why</span> you lose focus, and <span className="font-semibold">what</span> makes you thrive. 
+      Every session becomes a step toward greater awareness, balance, and productivity.
     </p>
   </div>
 </section>
+
 
 
       <Dialog open={openModal !== null} onOpenChange={handleModalOpenChange}>
