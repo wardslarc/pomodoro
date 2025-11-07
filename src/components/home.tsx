@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Settings as SettingsIcon, BarChart3, LogOut, Lock, Shield, FileText, Mail, Heart, Menu, X } from "lucide-react";
+import { Settings as SettingsIcon, BarChart3, LogOut, Lock, Shield, FileText, Mail, Heart, Menu, X, Users } from "lucide-react";
 import Timer from "./Timer";
 import Dashboard from "./Dashboard";
 import Settings from "./Settings";
@@ -10,6 +10,7 @@ import ReflectionContent from "./ReflectionContent";
 import PrivacyPolicy from "./PrivacyPolicy";
 import TermsAndConditions from "./TermsAndConditions";
 import ContactContent from "./ContactContent";
+import SocialFeed from "./social/SocialFeed"; // Add this import
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import {
@@ -31,6 +32,7 @@ type ModalType =
   | "logoutConfirm" 
   | "donate" 
   | "reflection"
+  | "social" // Add this
   | null;
 
 const Home = () => {
@@ -64,7 +66,7 @@ const Home = () => {
     setCurrentSessionId(null);
   };
 
-  const handleProtectedFeature = (feature: "dashboard" | "settings") => {
+  const handleProtectedFeature = (feature: "dashboard" | "settings" | "social") => {
     if (!user) {
       alert("Please log in first to access this feature.");
       return;
@@ -108,6 +110,7 @@ const Home = () => {
     switch (modalType) {
       case "dashboard":
       case "settings":
+      case "social": // Add this
         return "max-w-7xl w-full h-[90vh] mx-4";
       case "privacy":
       case "terms":
@@ -125,29 +128,44 @@ const Home = () => {
   };
 
   const renderModalContent = () => {
-    if ((openModal === "dashboard" || openModal === "settings" || openModal === "reflection") && !user) {
-      return null;
-    }
+  if ((openModal === "dashboard" || openModal === "settings" || openModal === "reflection") && !user) {
+    return null;
+  }
 
-    switch (openModal) {
-      case "reflection":
-        return (
-          <>
-            <DialogHeader>
-              <DialogTitle className="sr-only">Session Reflection</DialogTitle>
-              <DialogDescription className="sr-only">
-                Reflect on your completed Pomodoro session
-              </DialogDescription>
-            </DialogHeader>
-            <div className="overflow-auto">
-              <ReflectionContent
-                sessionId={currentSessionId}
-                onSubmit={handleReflectionSubmit}
-                onClose={() => setOpenModal(null)}
-              />
-            </div>
-          </>
-        );
+  switch (openModal) {
+    case "social":
+      return (
+        <>
+          <DialogHeader>
+            <DialogTitle className="sr-only">Community Feed</DialogTitle>
+            <DialogDescription className="sr-only">
+              Share and learn from other learners' experiences
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-auto h-full">
+            <SocialFeed />
+          </div>
+        </>
+      );
+    
+    case "reflection":
+      return (
+        <>
+          <DialogHeader>
+            <DialogTitle className="sr-only">Session Reflection</DialogTitle>
+            <DialogDescription className="sr-only">
+              Reflect on your completed Pomodoro session
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-auto">
+            <ReflectionContent
+              sessionId={currentSessionId}
+              onSubmit={handleReflectionSubmit}
+              onClose={() => setOpenModal(null)}
+            />
+          </div>
+        </>
+      );
       
       case "loginPrompt":
         return (
@@ -282,34 +300,44 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          <div className="flex items-center gap-6">
-            <button 
-              onClick={() => handleNavigationClick("timer")}
-              className={`text-base font-medium transition-colors hover:text-blue-700 ${
-                activeTab === "timer" ? "text-blue-800 font-semibold" : "text-blue-600"
-              }`}
-            >
-              Home
-            </button>
-            <button 
-              onClick={() => handleProtectedFeature("dashboard")}
-              className={`text-base font-medium transition-colors hover:text-blue-700 ${
-                activeTab === "dashboard" ? "text-blue-800 font-semibold" : "text-blue-600"
-              }`}
-            >
-              Dashboard
-            </button>
-            <button 
-              onClick={() => handleProtectedFeature("settings")}
-              className={`text-base font-medium transition-colors hover:text-blue-700 ${
-                activeTab === "settings" ? "text-blue-800 font-semibold" : "text-blue-600"
-              }`}
-            >
-              Settings
-            </button>
-          </div>
+      {/* Desktop Navigation */}
+      <nav className="hidden md:flex items-center gap-6">
+        <div className="flex items-center gap-6">
+          <button 
+            onClick={() => handleNavigationClick("timer")}
+            className={`text-base font-medium transition-colors hover:text-blue-700 ${
+              activeTab === "timer" ? "text-blue-800 font-semibold" : "text-blue-600"
+            }`}
+          >
+            Home
+          </button>
+          <button 
+            onClick={() => handleProtectedFeature("social")}
+            className={`text-left text-base font-medium transition-colors hover:text-blue-700 py-2 px-3 rounded-lg ${
+              activeTab === "social" 
+                ? "bg-blue-100 text-blue-800 font-semibold" 
+                : "text-blue-600 hover:bg-blue-50"
+            }`}
+          >
+            Community
+          </button>
+          <button 
+            onClick={() => handleProtectedFeature("dashboard")}
+            className={`text-base font-medium transition-colors hover:text-blue-700 ${
+              activeTab === "dashboard" ? "text-blue-800 font-semibold" : "text-blue-600"
+            }`}
+          >
+            Dashboard
+          </button>
+          <button 
+            onClick={() => handleProtectedFeature("settings")}
+            className={`text-base font-medium transition-colors hover:text-blue-700 ${
+              activeTab === "settings" ? "text-blue-800 font-semibold" : "text-blue-600"
+            }`}
+          >
+            Settings
+          </button>
+        </div>
 
           <div className="h-6 w-px bg-blue-300"></div>
 
@@ -376,6 +404,16 @@ const Home = () => {
               Home
             </button>
             <button 
+              onClick={() => handleProtectedFeature("social")}
+              className={`text-left text-base font-medium transition-colors hover:text-blue-700 py-2 px-3 rounded-lg ${
+                activeTab === "social" 
+                  ? "bg-blue-100 text-blue-800 font-semibold" 
+                  : "text-blue-600 hover:bg-blue-50"
+              }`}
+            >
+              Community
+            </button>
+            <button 
               onClick={() => handleProtectedFeature("dashboard")}
               className={`text-left text-base font-medium transition-colors hover:text-blue-700 py-2 px-3 rounded-lg ${
                 activeTab === "dashboard" 
@@ -422,20 +460,37 @@ const Home = () => {
         </div>
       )}
 
-      <main className="max-w-6xl mx-auto">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="hidden">
-            <TabsTrigger value="timer">Timer</TabsTrigger>
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
-          <TabsContent value="timer" className="mt-0">
-            <div className="flex flex-col items-center justify-center px-2">
-              <Timer onSessionComplete={handleTimerComplete} />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </main>
+    <main className="max-w-6xl mx-auto">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="hidden">
+          <TabsTrigger value="timer">Timer</TabsTrigger>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
+        <TabsContent value="timer" className="mt-0">
+          <div className="flex flex-col items-center justify-center px-2">
+            <Timer onSessionComplete={handleTimerComplete} />
+            
+       
+        {/* Add Community Button */}
+        <div className="mt-8 flex flex-col items-center gap-4">
+          <Button 
+            onClick={() => handleProtectedFeature("social")}
+            variant="outline" 
+            className="flex items-center gap-2 border-blue-300 text-blue-700 hover:bg-blue-50"
+            size="lg"
+          >
+            <Users className="h-5 w-5" />
+            Join the Community
+          </Button>
+          <p className="text-sm text-blue-600 text-center max-w-md">
+            Share your reflections and learn from others' experiences
+          </p>
+        </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </main>
 
  <section className="relative left-1/2 right-1/2 -mx-[50vw] w-screen bg-white text-blue-900 py-12 md:py-20 px-4 md:px-8 mt-12 md:mt-16">
   <div className="max-w-5xl mx-auto text-center">
