@@ -471,21 +471,22 @@ const Home = () => {
           <div className="flex flex-col items-center justify-center px-2">
             <Timer onSessionComplete={handleTimerComplete} />
             
-            {/* Add Community Button */}
-            <div className="mt-8 flex flex-col items-center gap-4">
-              <Button 
-                onClick={() => setOpenModal("social")}
-                variant="outline" 
-                className="flex items-center gap-2 border-blue-300 text-blue-700 hover:bg-blue-50"
-                size="lg"
-              >
-                <Users className="h-5 w-5" />
-                Join the Community
-              </Button>
-              <p className="text-sm text-blue-600 text-center max-w-md">
-                Share your reflections and learn from others' experiences
-              </p>
-            </div>
+       
+        {/* Add Community Button */}
+        <div className="mt-8 flex flex-col items-center gap-4">
+          <Button 
+            onClick={() => handleProtectedFeature("social")}
+            variant="outline" 
+            className="flex items-center gap-2 border-blue-300 text-blue-700 hover:bg-blue-50"
+            size="lg"
+          >
+            <Users className="h-5 w-5" />
+            Join the Community
+          </Button>
+          <p className="text-sm text-blue-600 text-center max-w-md">
+            Share your reflections and learn from others' experiences
+          </p>
+        </div>
           </div>
         </TabsContent>
       </Tabs>
