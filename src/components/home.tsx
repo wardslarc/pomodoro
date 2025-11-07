@@ -66,7 +66,7 @@ const Home = () => {
     setCurrentSessionId(null);
   };
 
-  const handleProtectedFeature = (feature: "dashboard" | "settings") => {
+  const handleProtectedFeature = (feature: "dashboard" | "settings" | "social") => {
     if (!user) {
       alert("Please log in first to access this feature.");
       return;
@@ -312,9 +312,11 @@ const Home = () => {
             Home
           </button>
           <button 
-            onClick={() => setOpenModal("social")}
-            className={`text-base font-medium transition-colors hover:text-blue-700 ${
-              activeTab === "social" ? "text-blue-800 font-semibold" : "text-blue-600"
+            onClick={() => handleProtectedFeature("social")}
+            className={`text-left text-base font-medium transition-colors hover:text-blue-700 py-2 px-3 rounded-lg ${
+              activeTab === "social" 
+                ? "bg-blue-100 text-blue-800 font-semibold" 
+                : "text-blue-600 hover:bg-blue-50"
             }`}
           >
             Community
@@ -402,7 +404,7 @@ const Home = () => {
               Home
             </button>
             <button 
-              onClick={() => setOpenModal("social")}
+              onClick={() => handleProtectedFeature("social")}
               className={`text-left text-base font-medium transition-colors hover:text-blue-700 py-2 px-3 rounded-lg ${
                 activeTab === "social" 
                   ? "bg-blue-100 text-blue-800 font-semibold" 
