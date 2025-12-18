@@ -21,6 +21,14 @@ import {
   TrendingUp
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { 
+  sanitizeText, 
+  sanitizeName, 
+  sanitizeTag, 
+  sanitizeTags, 
+  sanitizeSearchQuery,
+  sanitizeAPIResponse 
+} from "@/utils/sanitization";
 
 interface User {
   uid: string;
@@ -75,7 +83,25 @@ const SocialFeed: React.FC = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setPosts(data.data?.posts || []);
+        // Sanitize all posts to prevent XSS
+        const posts = (data.data?.posts || []).map((post: any) => ({
+          ...sanitizeAPIResponse(post),
+          learnings: sanitizeText(post.learnings),
+          tags: sanitizeTags(post.tags),
+          userId: {
+            ...post.userId,
+            name: sanitizeName(post.userId?.name || 'Anonymous')
+          },
+          comments: (post.comments || []).map((comment: any) => ({
+            ...comment,
+            text: sanitizeText(comment.text),
+            userId: {
+              ...comment.userId,
+              name: sanitizeName(comment.userId?.name || 'Anonymous')
+            }
+          }))
+        }));
+        setPosts(posts);
       } else {
         console.error('Failed to fetch posts:', response.status);
       }
@@ -122,7 +148,8 @@ const SocialFeed: React.FC = () => {
   };
 
   const handleComment = async (postId: string) => {
-    if (!user?.uid || !token || !commentTexts[postId]?.trim()) return;
+    const sanitizedComment = sanitizeText(commentTexts[postId]?.trim() || '');
+    if (!user?.uid || !token || !sanitizedComment) return;
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/social/posts/${postId}/comment`, {
@@ -132,7 +159,7 @@ const SocialFeed: React.FC = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          text: commentTexts[postId].trim()
+          text: sanitizedComment
         })
       });
 
@@ -140,9 +167,17 @@ const SocialFeed: React.FC = () => {
         const data = await response.json();
         setPosts(prevPosts => prevPosts.map(post => {
           if (post._id === postId) {
+            const newComment = {
+              ...data.data.comment,
+              text: sanitizeText(data.data.comment.text),
+              userId: {
+                ...data.data.comment.userId,
+                name: sanitizeName(data.data.comment.userId?.name || 'Anonymous')
+              }
+            };
             return {
               ...post,
-              comments: [...post.comments, data.data.comment]
+              comments: [...post.comments, newComment]
             };
           }
           return post;
@@ -154,15 +189,16 @@ const SocialFeed: React.FC = () => {
     }
   };
 
-  // Memoized filtered posts
+  // Memoized filtered posts with sanitized search
   const filteredPosts = useMemo(() => {
+    const sanitizedSearchTerm = sanitizeSearchQuery(searchTerm);
     return posts.filter(post => {
-      const matchesSearch = post.learnings.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           post.userId.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = post.learnings.toLowerCase().includes(sanitizedSearchTerm.toLowerCase()) ||
+                           post.userId.name.toLowerCase().includes(sanitizedSearchTerm.toLowerCase());
       const matchesTag = selectedTag === "all" || post.tags.includes(selectedTag);
       return matchesSearch && matchesTag;
     });
-  }, [posts, searchTerm, selectedTag]);
+  }, [posts, searchTerm]);
 
   // Memoized tags
   const allTags = useMemo(() => 
@@ -194,8 +230,8 @@ const SocialFeed: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
-      <div className="max-w-6xl mx-auto p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-white">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-6 sm:py-8 lg:py-12">
         <HeaderSection />
         
         <StatsSection stats={stats} />
@@ -268,59 +304,67 @@ const LoadingSkeleton: React.FC = () => (
 );
 
 const HeaderSection: React.FC = () => (
-  <div className="text-center mb-8">
-    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg mb-4">
-      <BookOpen className="h-8 w-8 text-white" />
+  <div className="text-center mb-8 sm:mb-12 space-y-4 sm:space-y-6">
+    <div className="flex justify-center">
+      <div className="inline-flex items-center justify-center p-3 sm:p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl sm:rounded-3xl border border-blue-200/30 shadow-lg hover:shadow-xl transition-shadow">
+        <BookOpen className="h-8 w-8 sm:h-10 sm:w-10 text-blue-600" />
+      </div>
     </div>
-    <h1 className="text-4xl font-bold bg-gradient-to-br from-slate-800 to-slate-600 bg-clip-text text-transparent mb-3">
-      Reflection Community
-    </h1>
-    <p className="text-slate-600 text-lg max-w-2xl mx-auto">
-      Connect with fellow learners. Share insights, celebrate progress, and grow together.
-    </p>
+    <div className="space-y-2 sm:space-y-3">
+      <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-slate-800 bg-clip-text text-transparent">
+        Reflection Community
+      </h1>
+      <p className="text-sm sm:text-base lg:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+        Connect with fellow learners. Share insights, celebrate progress, and grow together.
+      </p>
+    </div>
   </div>
 );
 
 const StatsSection: React.FC<{ stats: { totalPosts: number; totalLikes: number; totalComments: number; totalTags: number } }> = ({ stats }) => (
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+  <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-8 sm:mb-12">
     <StatCard 
-      icon={<BookOpen className="h-5 w-5 text-blue-600" />}
+      icon={<BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />}
       value={stats.totalPosts}
-      label="Total Reflections"
-      bgColor="bg-blue-100"
+      label="Reflections"
+      bgColor="from-blue-500/10 to-blue-500/5"
+      borderColor="border-blue-200/40"
     />
     <StatCard 
-      icon={<Zap className="h-5 w-5 text-green-600" />}
+      icon={<Zap className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />}
       value={stats.totalLikes}
-      label="Total Likes"
-      bgColor="bg-green-100"
+      label="Likes"
+      bgColor="from-green-500/10 to-green-500/5"
+      borderColor="border-green-200/40"
     />
     <StatCard 
-      icon={<MessageCircle className="h-5 w-5 text-purple-600" />}
+      icon={<MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />}
       value={stats.totalComments}
-      label="Total Comments"
-      bgColor="bg-purple-100"
+      label="Comments"
+      bgColor="from-purple-500/10 to-purple-500/5"
+      borderColor="border-purple-200/40"
     />
     <StatCard 
-      icon={<TrendingUp className="h-5 w-5 text-orange-600" />}
+      icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />}
       value={stats.totalTags}
       label="Topics"
-      bgColor="bg-orange-100"
+      bgColor="from-orange-500/10 to-orange-500/5"
+      borderColor="border-orange-200/40"
     />
   </div>
 );
 
-const StatCard: React.FC<{ icon: React.ReactNode; value: number; label: string; bgColor: string }> = ({ 
-  icon, value, label, bgColor 
+const StatCard: React.FC<{ icon: React.ReactNode; value: number; label: string; bgColor: string; borderColor: string }> = ({ 
+  icon, value, label, bgColor, borderColor
 }) => (
-  <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-    <div className="flex items-center space-x-3">
-      <div className={`p-2 ${bgColor} rounded-lg`}>
+  <div className={`bg-gradient-to-br ${bgColor} rounded-xl sm:rounded-2xl p-3 sm:p-5 lg:p-6 border ${borderColor} shadow-sm hover:shadow-md transition-all duration-300`}>
+    <div className="flex flex-col items-center sm:items-start space-y-2 sm:space-y-3">
+      <div className="p-2.5 sm:p-3 bg-white/50 rounded-lg backdrop-blur-sm">
         {icon}
       </div>
-      <div>
-        <p className="text-2xl font-bold text-slate-800">{value}</p>
-        <p className="text-sm text-slate-600">{label}</p>
+      <div className="text-center sm:text-left">
+        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900">{value}</p>
+        <p className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5 sm:mt-1">{label}</p>
       </div>
     </div>
   </div>
@@ -373,14 +417,14 @@ const EmptyState: React.FC<{ hasPosts: boolean; hasFilteredPosts: boolean }> = (
   if (!hasFilteredPosts) return null;
 
   return (
-    <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-slate-100">
-      <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-        <BookOpen className="h-8 w-8 text-slate-400" />
+    <div className="text-center py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-slate-50/50 to-blue-50/30 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/30">
+      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-100 to-slate-100 rounded-full sm:rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+        <BookOpen className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" />
       </div>
-      <h3 className="text-xl font-semibold text-slate-700 mb-2">
+      <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold text-slate-700 mb-2 sm:mb-3">
         {hasPosts ? "No matching reflections" : "No reflections yet"}
       </h3>
-      <p className="text-slate-500 mb-6">
+      <p className="text-sm sm:text-base text-slate-600 mb-6 sm:mb-8 max-w-md mx-auto">
         {hasPosts 
           ? "Try adjusting your search or filters" 
           : "Be the first to share your learning journey!"}
@@ -394,30 +438,35 @@ const Sidebar: React.FC<{
   selectedTag: string;
   onTagSelect: (tag: string) => void;
 }> = ({ allTags, selectedTag, onTagSelect }) => (
-  <div className="space-y-6">
-    <Card className="rounded-2xl border-slate-100 shadow-sm">
-      <CardHeader className="pb-4">
-        <h3 className="font-semibold text-slate-800 flex items-center">
-          <TrendingUp className="h-4 w-4 mr-2 text-blue-500" />
+  <div className="space-y-6 sm:space-y-8">
+    <Card className="rounded-2xl sm:rounded-3xl border-slate-200/50 shadow-sm hover:shadow-md transition-shadow bg-white/60 backdrop-blur-sm">
+      <CardHeader className="pb-4 sm:pb-6">
+        <h3 className="font-bold text-base sm:text-lg text-slate-900 flex items-center gap-2.5">
+          <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
           Popular Topics
         </h3>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {allTags.slice(0, 8).map(tag => (
-            <button
-              key={tag}
-              onClick={() => onTagSelect(tag)}
-              className={`flex items-center justify-between w-full p-2 rounded-lg transition-colors ${
-                selectedTag === tag ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50'
-              }`}
-            >
-              <span className="text-sm font-medium">#{tag}</span>
-              <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-                {allTags.filter(t => t === tag).length}
-              </span>
-            </button>
-          ))}
+        <div className="space-y-2 sm:space-y-3">
+          {allTags.slice(0, 8).map(tag => {
+            const sanitizedTag = sanitizeTag(tag);
+            return (
+              <button
+                key={tag}
+                onClick={() => onTagSelect(sanitizedTag)}
+                className={`flex items-center justify-between w-full p-2.5 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-200 ${
+                  selectedTag === sanitizedTag 
+                    ? 'bg-gradient-to-r from-blue-500/10 to-blue-400/5 text-blue-700 border border-blue-200/50 shadow-sm' 
+                    : 'bg-slate-50/50 hover:bg-slate-100/50 border border-slate-200/30 hover:border-slate-300/50'
+                }`}
+              >
+                <span className="text-xs sm:text-sm font-semibold">#{sanitizedTag}</span>
+                <span className="text-xs text-slate-500 bg-slate-100/80 px-2 sm:px-2.5 py-1 rounded-full font-medium">
+                  {allTags.filter(t => sanitizeTag(t) === sanitizedTag).length}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
@@ -427,20 +476,22 @@ const Sidebar: React.FC<{
 );
 
 const CommunityGuidelines: React.FC = () => (
-  <Card className="rounded-2xl border-slate-100 shadow-sm bg-gradient-to-br from-slate-50 to-blue-50/50">
-    <CardContent className="p-6">
-      <div className="text-center">
-        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-          <BookOpen className="h-6 w-6 text-blue-600" />
+  <Card className="rounded-2xl sm:rounded-3xl border-slate-200/50 shadow-sm bg-gradient-to-br from-blue-50/50 via-slate-50/30 to-purple-50/30 backdrop-blur-sm hover:shadow-md transition-shadow">
+    <CardContent className="p-5 sm:p-6 lg:p-8">
+      <div className="text-center space-y-3 sm:space-y-4">
+        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto border border-blue-200/30">
+          <BookOpen className="h-6 w-6 sm:h-7 sm:w-7 text-blue-600" />
         </div>
-        <h4 className="font-semibold text-slate-800 mb-2">Community Guidelines</h4>
-        <p className="text-sm text-slate-600 mb-4">
-          Share constructive insights and support fellow learners in their journey.
-        </p>
-        <div className="space-y-2 text-xs text-slate-500">
+        <div>
+          <h4 className="font-bold text-base sm:text-lg text-slate-900 mb-2">Community Guidelines</h4>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            Share constructive insights and support fellow learners in their journey.
+          </p>
+        </div>
+        <div className="space-y-2 pt-2 sm:pt-3 border-t border-slate-200/50">
           {["Be kind and respectful", "Share learning experiences", "Celebrate progress together"].map((guideline, index) => (
-            <div key={index} className="flex items-center justify-center space-x-1">
-              <div className="w-1 h-1 bg-slate-300 rounded-full" />
+            <div key={index} className="flex items-center justify-center gap-2 text-xs text-slate-600 font-medium">
+              <div className="w-1.5 h-1.5 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full" />
               <span>{guideline}</span>
             </div>
           ))}
@@ -450,7 +501,7 @@ const CommunityGuidelines: React.FC = () => (
   </Card>
 );
 
-// PostCard component remains largely the same but with better organization
+// PostCard component with modern styling
 const PostCard: React.FC<{
   post: ReflectionPost;
   currentUser: User | null;
@@ -468,12 +519,12 @@ const PostCard: React.FC<{
     : post.comments.slice(-INITIAL_COMMENTS_DISPLAY);
 
   return (
-    <Card className="rounded-2xl border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-      <CardHeader className="pb-4">
+    <Card className="rounded-2xl sm:rounded-3xl border-slate-200/50 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden bg-white/80 backdrop-blur-sm hover:border-slate-300/50">
+      <CardHeader className="pb-4 sm:pb-5 border-b border-slate-100/50">
         <PostHeader post={post} getTimeAgo={getTimeAgo} />
       </CardHeader>
 
-      <CardContent className="pb-4">
+      <CardContent className="pb-4 sm:pb-5 pt-4 sm:pt-5">
         <PostContent post={post} />
       </CardContent>
 
@@ -508,15 +559,15 @@ const PostHeader: React.FC<{ post: ReflectionPost; getTimeAgo: (date: string) =>
 }) => (
   <div className="flex items-center justify-between">
     <div className="flex items-center space-x-3">
-      <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+      <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-white shadow-md">
         <AvatarImage src={post.userId.avatar} alt={post.userId.name} />
-        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold text-sm sm:text-base">
           {post.userId.name.charAt(0).toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <div>
-        <p className="font-semibold text-slate-800">{post.userId.name}</p>
-        <div className="flex items-center space-x-2 text-xs text-slate-500">
+        <p className="font-bold text-sm sm:text-base text-slate-900">{post.userId.name}</p>
+        <div className="flex items-center space-x-2 text-xs text-slate-500 mt-0.5">
           <Clock className="h-3 w-3" />
           <span>{getTimeAgo(post.createdAt)}</span>
           <Target className="h-3 w-3 ml-1" />
@@ -527,7 +578,7 @@ const PostHeader: React.FC<{ post: ReflectionPost; getTimeAgo: (date: string) =>
     
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100/50">
           <MoreHorizontal className="h-4 w-4" />
           <span className="sr-only">Post options</span>
         </Button>
@@ -544,19 +595,19 @@ const PostContent: React.FC<{ post: ReflectionPost }> = ({ post }) => (
   <>
     <div className="prose prose-sm max-w-none">
       {post.learnings.split('\n').map((line, index) => (
-        <p key={index} className="mb-3 text-slate-700 leading-relaxed">
+        <p key={index} className="mb-3 text-slate-700 leading-relaxed text-sm sm:text-base">
           {line}
         </p>
       ))}
     </div>
     
     {post.tags.length > 0 && (
-      <div className="flex flex-wrap gap-2 mt-4">
+      <div className="flex flex-wrap gap-2 mt-4 sm:mt-5">
         {post.tags.map(tag => (
           <Badge 
             key={tag} 
             variant="secondary" 
-            className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-0 text-xs px-3 py-1 rounded-full"
+            className="bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 hover:from-blue-100 hover:to-cyan-100 border border-blue-200/50 text-xs px-3 py-1.5 rounded-full font-medium shadow-sm"
           >
             #{tag}
           </Badge>
@@ -567,16 +618,16 @@ const PostContent: React.FC<{ post: ReflectionPost }> = ({ post }) => (
 );
 
 const PostStats: React.FC<{ likes: number; comments: number }> = ({ likes, comments }) => (
-  <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/50">
-    <div className="flex items-center justify-between text-sm text-slate-600">
-      <div className="flex items-center space-x-4">
-        <span className="flex items-center space-x-1">
+  <div className="px-5 sm:px-6 py-3 sm:py-4 border-t border-slate-100/50 bg-gradient-to-r from-slate-50/50 to-blue-50/30">
+    <div className="flex items-center justify-between text-xs sm:text-sm text-slate-600 font-medium">
+      <div className="flex items-center space-x-4 sm:space-x-6">
+        <span className="flex items-center space-x-1.5 hover:text-red-500 transition-colors">
           <Heart className="h-4 w-4" />
-          <span>{likes} likes</span>
+          <span>{likes} {likes === 1 ? 'like' : 'likes'}</span>
         </span>
-        <span className="flex items-center space-x-1">
+        <span className="flex items-center space-x-1.5 hover:text-blue-500 transition-colors">
           <MessageCircle className="h-4 w-4" />
-          <span>{comments} comments</span>
+          <span>{comments} {comments === 1 ? 'comment' : 'comments'}</span>
         </span>
       </div>
     </div>
@@ -588,32 +639,40 @@ const PostActions: React.FC<{
   onLike: () => void; 
   currentUser: User | null;
 }> = ({ isLiked, onLike, currentUser }) => (
-  <div className="px-6 py-3 border-t border-slate-100">
-    <div className="flex space-x-1">
+  <div className="px-5 sm:px-6 py-3 sm:py-4 border-t border-slate-100/50 bg-white/40">
+    <div className="flex gap-1 sm:gap-2">
       <Button
         variant="ghost"
         size="sm"
         onClick={onLike}
-        className={`flex-1 rounded-lg ${isLiked ? 'text-red-500 bg-red-50' : 'text-slate-600 hover:text-red-500'}`}
+        className={`flex-1 rounded-lg sm:rounded-xl font-medium text-xs sm:text-sm transition-all ${
+          isLiked 
+            ? 'text-red-500 bg-red-50/80 hover:bg-red-100/80 shadow-sm' 
+            : 'text-slate-600 hover:text-red-500 hover:bg-red-50/50'
+        }`}
         disabled={!currentUser}
       >
-        <Heart className={`h-4 w-4 mr-2 ${isLiked ? 'fill-current' : ''}`} />
-        {isLiked ? 'Liked' : 'Like'}
+        <Heart className={`h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2 ${isLiked ? 'fill-current' : ''}`} />
+        <span className="hidden xs:inline">{isLiked ? 'Liked' : 'Like'}</span>
       </Button>
       
       <Button 
         variant="ghost" 
         size="sm" 
-        className="flex-1 rounded-lg text-slate-600 hover:text-blue-500"
+        className="flex-1 rounded-lg sm:rounded-xl text-slate-600 hover:text-blue-500 hover:bg-blue-50/50 font-medium text-xs sm:text-sm transition-all"
         disabled={!currentUser}
       >
-        <MessageCircle className="h-4 w-4 mr-2" />
-        Comment
+        <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+        <span className="hidden xs:inline">Comment</span>
       </Button>
       
-      <Button variant="ghost" size="sm" className="flex-1 rounded-lg text-slate-600 hover:text-green-500">
-        <Share className="h-4 w-4 mr-2" />
-        Share
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="flex-1 rounded-lg sm:rounded-xl text-slate-600 hover:text-green-500 hover:bg-green-50/50 font-medium text-xs sm:text-sm transition-all"
+      >
+        <Share className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+        <span className="hidden xs:inline">Share</span>
       </Button>
     </div>
   </div>
@@ -629,26 +688,26 @@ const PostComments: React.FC<{
   if (comments.length === 0) return null;
 
   return (
-    <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/30">
-      <div className="space-y-3">
+    <div className="px-5 sm:px-6 py-4 sm:py-5 border-t border-slate-100/50 bg-gradient-to-br from-slate-50/40 to-blue-50/30 space-y-3 sm:space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {comments.map(comment => (
-          <div key={comment._id} className="flex space-x-3">
-            <Avatar className="h-6 w-6 flex-shrink-0">
-              <AvatarFallback className="text-xs bg-slate-200">
+          <div key={comment._id} className="flex space-x-2.5 sm:space-x-3">
+            <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 border border-slate-200">
+              <AvatarFallback className="text-xs bg-gradient-to-br from-slate-200 to-slate-300 font-semibold text-slate-700">
                 {comment.userId.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-slate-100">
+              <div className="bg-white rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-sm border border-slate-100/50 hover:shadow-md transition-shadow">
                 <div className="flex items-center space-x-2 mb-1">
-                  <span className="font-medium text-sm text-slate-800">
+                  <span className="font-semibold text-xs sm:text-sm text-slate-900">
                     {comment.userId.name}
                   </span>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-slate-500 font-medium">
                     {getTimeAgo(comment.createdAt)}
                   </span>
                 </div>
-                <p className="text-sm text-slate-700">{comment.text}</p>
+                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">{comment.text}</p>
               </div>
             </div>
           </div>
@@ -658,10 +717,10 @@ const PostComments: React.FC<{
           <Button 
             variant="link" 
             size="sm" 
-            className="px-0 text-blue-600 hover:text-blue-700 text-xs"
+            className="px-0 text-blue-600 hover:text-blue-700 text-xs font-medium"
             onClick={onToggleComments}
           >
-            {showAllComments ? 'Show less' : `View all ${allCommentsCount} comments`}
+            {showAllComments ? '← Show less' : `View all ${allCommentsCount} comments`}
           </Button>
         )}
       </div>
@@ -678,14 +737,14 @@ const PostCommentInput: React.FC<{
   if (!currentUser) return null;
 
   return (
-    <div className="px-6 py-4 border-t border-slate-100">
-      <div className="flex space-x-3">
-        <Avatar className="h-8 w-8 flex-shrink-0">
-          <AvatarFallback className="text-sm bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+    <div className="px-5 sm:px-6 py-4 sm:py-5 border-t border-slate-100/50 bg-white/40">
+      <div className="flex space-x-2.5 sm:space-x-3">
+        <Avatar className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 border border-slate-200/50">
+          <AvatarFallback className="text-sm bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold">
             {currentUser.name.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
-        <div className="flex-1 flex space-x-2">
+        <div className="flex-1 flex gap-2">
           <Input
             placeholder="Add a comment..."
             value={commentText}
@@ -697,13 +756,13 @@ const PostCommentInput: React.FC<{
                 onComment();
               }
             }}
-            className="flex-1 rounded-xl border-slate-200 focus:border-blue-300"
+            className="flex-1 rounded-xl sm:rounded-2xl border-slate-200/50 bg-slate-50/50 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-200/50 text-xs sm:text-sm transition-all"
           />
           <Button 
             size="sm" 
             onClick={onComment}
             disabled={!commentText.trim()}
-            className="rounded-xl bg-blue-500 hover:bg-blue-600"
+            className="rounded-xl sm:rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium shadow-sm hover:shadow-md transition-all px-3 sm:px-4"
           >
             <Send className="h-4 w-4" />
             <span className="sr-only">Send comment</span>

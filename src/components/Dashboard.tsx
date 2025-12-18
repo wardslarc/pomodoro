@@ -11,6 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { sanitizeText, sanitizeName, sanitizeTags } from "@/utils/sanitization";
 import { 
   Award, 
   BarChart3, 
@@ -389,26 +390,26 @@ const Dashboard: React.FC<DashboardProps> = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-blue-950 p-3 sm:p-4 lg:p-6 xl:p-8">
       <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
         {/* Header - Mobile Optimized */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 sm:p-3 bg-primary/10 rounded-xl sm:rounded-2xl">
-                <PieChart className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+        <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="p-2.5 sm:p-3 lg:p-4 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl sm:rounded-2xl border border-blue-200/30">
+                <PieChart className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                   Productivity Dashboard
                 </h1>
-                <p className="text-sm sm:text-base lg:text-lg text-muted-foreground mt-1 sm:mt-2">
+                <p className="text-xs sm:text-sm lg:text-base text-slate-600 mt-1 sm:mt-2 leading-relaxed">
                   Track your focus sessions and optimize your workflow
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 sm:gap-3">
             {user && (
-              <Badge variant="secondary" className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm self-start sm:self-auto">
+              <Badge variant="secondary" className="px-3 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200/50 font-medium">
                 {sessions.length > 0 ? '☁️ Cloud Synced' : '📱 Local Data'}
               </Badge>
             )}
@@ -417,10 +418,10 @@ const Dashboard: React.FC<DashboardProps> = () => {
               size="sm"
               onClick={handleRefresh}
               disabled={refreshing}
-              className="gap-2 px-4 py-2 h-auto"
+              className="gap-2 px-3 sm:px-4 py-2 h-auto text-sm sm:text-base border-slate-300 hover:bg-slate-50 font-medium"
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
+              <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden xs:inline">{refreshing ? 'Refreshing...' : 'Refresh'}</span>
             </Button>
           </div>
         </div>
@@ -429,76 +430,76 @@ const Dashboard: React.FC<DashboardProps> = () => {
           {/* Main Content - Mobile Optimized */}
           <div className="xl:col-span-2 space-y-6 lg:space-y-8">
             {/* Stats Grid - Mobile Optimized */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-              <Card className="relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+            <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+              <Card className="relative overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="text-xs sm:text-sm font-medium opacity-90">Total Pomodoros</span>
+                    <div className="space-y-2 sm:space-y-3 min-w-0">
+                      <div className="flex items-center gap-2 sm:gap-2.5">
+                        <Clock className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm font-semibold opacity-95">Total Pomodoros</span>
                       </div>
-                      <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{stats.completedPomodoros}</div>
-                      <div className="text-xs sm:text-sm opacity-80">Work sessions</div>
+                      <div className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.completedPomodoros}</div>
+                      <div className="text-xs sm:text-sm opacity-80 font-medium">Work sessions</div>
                     </div>
-                    <div className="p-2 sm:p-3 bg-white/10 rounded-full">
-                      <Target className="h-4 w-4 sm:h-6 sm:w-6" />
+                    <div className="p-2.5 sm:p-3 bg-white/15 rounded-xl lg:rounded-2xl border border-white/20 flex-shrink-0">
+                      <Target className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="relative overflow-hidden bg-gradient-to-br from-green-500 to-green-600 text-white">
+              <Card className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <Flame className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="text-xs sm:text-sm font-medium opacity-90">Current Streak</span>
+                    <div className="space-y-2 sm:space-y-3 min-w-0">
+                      <div className="flex items-center gap-2 sm:gap-2.5">
+                        <Flame className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm font-semibold opacity-95">Current Streak</span>
                       </div>
-                      <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{stats.streakDays} days</div>
-                      <div className="text-xs sm:text-sm opacity-80">Focus days</div>
+                      <div className="text-2xl sm:text-3xl lg:text-4xl font-bold">{stats.streakDays} days</div>
+                      <div className="text-xs sm:text-sm opacity-80 font-medium">Focus days</div>
                     </div>
-                    <div className="p-2 sm:p-3 bg-white/10 rounded-full">
-                      <Award className="h-4 w-4 sm:h-6 sm:w-6" />
+                    <div className="p-2.5 sm:p-3 bg-white/15 rounded-xl lg:rounded-2xl border border-white/20 flex-shrink-0">
+                      <Award className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+              <Card className="relative overflow-hidden bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="text-xs sm:text-sm font-medium opacity-90">This Week</span>
+                    <div className="space-y-2 sm:space-y-3 min-w-0">
+                      <div className="flex items-center gap-2 sm:gap-2.5">
+                        <Zap className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm font-semibold opacity-95">This Week</span>
                       </div>
-                      <div className="text-xl sm:text-2xl lg:text-3xl font-bold">
+                      <div className="text-2xl sm:text-3xl lg:text-4xl font-bold">
                         {stats.weeklyPomodoros.reduce((a, b) => a + b, 0)}
                       </div>
-                      <div className="text-xs sm:text-sm opacity-80">Weekly sessions</div>
+                      <div className="text-xs sm:text-sm opacity-80 font-medium">Weekly sessions</div>
                     </div>
-                    <div className="p-2 sm:p-3 bg-white/10 rounded-full">
-                      <Activity className="h-4 w-4 sm:h-6 sm:w-6" />
+                    <div className="p-2.5 sm:p-3 bg-white/15 rounded-xl lg:rounded-2xl border border-white/20 flex-shrink-0">
+                      <Activity className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+              <Card className="relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <Brain className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="text-xs sm:text-sm font-medium opacity-90">Focus Time</span>
+                    <div className="space-y-2 sm:space-y-3 min-w-0">
+                      <div className="flex items-center gap-2 sm:gap-2.5">
+                        <Brain className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm font-semibold opacity-95">Focus Time</span>
                       </div>
-                      <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{totalFocusMinutes}m</div>
-                      <div className="text-xs sm:text-sm opacity-80">Total minutes</div>
+                      <div className="text-2xl sm:text-3xl lg:text-4xl font-bold">{totalFocusMinutes}m</div>
+                      <div className="text-xs sm:text-sm opacity-80 font-medium">Total minutes</div>
                     </div>
-                    <div className="p-2 sm:p-3 bg-white/10 rounded-full">
-                      <Crown className="h-4 w-4 sm:h-6 sm:w-6" />
+                    <div className="p-2.5 sm:p-3 bg-white/15 rounded-xl lg:rounded-2xl border border-white/20 flex-shrink-0">
+                      <Crown className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
                   </div>
                 </CardContent>
@@ -506,28 +507,28 @@ const Dashboard: React.FC<DashboardProps> = () => {
             </div>
 
             {/* Tabs Section - Mobile Optimized */}
-            <Card>
-              <CardHeader className="pb-4">
+            <Card className="border-slate-200/50 shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2 sm:pb-3">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-12 sm:h-14 gap-1 sm:gap-2">
-                    <TabsTrigger value="overview" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                      <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <TabsList className="grid w-full grid-cols-3 xs:grid-cols-5 h-11 sm:h-13 gap-0.5 sm:gap-1 p-1 bg-slate-100/50">
+                    <TabsTrigger value="overview" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-medium rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
+                      <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />
                       <span className="hidden xs:inline">Overview</span>
                     </TabsTrigger>
-                    <TabsTrigger value="analytics" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                      <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <TabsTrigger value="analytics" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-medium rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
+                      <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                       <span className="hidden xs:inline">Analytics</span>
                     </TabsTrigger>
-                    <TabsTrigger value="calendar" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                      <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <TabsTrigger value="calendar" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-medium rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
+                      <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                       <span className="hidden xs:inline">Calendar</span>
                     </TabsTrigger>
-                    <TabsTrigger value="leaderboard" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                      <Trophy className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <TabsTrigger value="leaderboard" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-medium rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
+                      <Trophy className="h-4 w-4 sm:h-5 sm:w-5" />
                       <span className="hidden xs:inline">Ranking</span>
                     </TabsTrigger>
-                    <TabsTrigger value="insights" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                      <Lightbulb className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <TabsTrigger value="insights" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-medium rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
+                      <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5" />
                       <span className="hidden xs:inline">Insights</span>
                     </TabsTrigger>
                   </TabsList>
@@ -535,13 +536,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
                   <TabsContent value="overview" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                       {/* Weekly Activity - Fixed Progress Bar */}
-                      <Card>
-                        <CardHeader className="pb-3">
-                          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                            <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                      <Card className="border-slate-200/50 shadow-md hover:shadow-lg transition-shadow">
+                        <CardHeader className="pb-4 sm:pb-5">
+                          <CardTitle className="flex items-center gap-2.5 text-base sm:text-lg font-bold">
+                            <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                             Weekly Activity
                           </CardTitle>
-                          <CardDescription className="text-xs sm:text-sm">Your focus sessions this week</CardDescription>
+                          <CardDescription className="text-xs sm:text-sm text-slate-600">Your focus sessions this week</CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-4">
@@ -568,13 +569,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
                         </CardContent>
                       </Card>
 
-                      <Card>
-                        <CardHeader className="pb-3">
-                          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                            <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                      <Card className="border-slate-200/50 shadow-md hover:shadow-lg transition-shadow">
+                        <CardHeader className="pb-4 sm:pb-5">
+                          <CardTitle className="flex items-center gap-2.5 text-base sm:text-lg font-bold">
+                            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                             Session Distribution
                           </CardTitle>
-                          <CardDescription className="text-xs sm:text-sm">Breakdown of your session types</CardDescription>
+                          <CardDescription className="text-xs sm:text-sm text-slate-600">Breakdown of your session types</CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3 sm:space-y-4">
@@ -605,13 +606,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
                     </div>
 
                     {/* Today's Activity - Mobile Optimized */}
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                          <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    <Card className="border-slate-200/50 shadow-md hover:shadow-lg transition-shadow">
+                      <CardHeader className="pb-4 sm:pb-5">
+                        <CardTitle className="flex items-center gap-2.5 text-base sm:text-lg font-bold">
+                          <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                           Today's Activity
                         </CardTitle>
-                        <CardDescription className="text-xs sm:text-sm">Sessions completed today</CardDescription>
+                        <CardDescription className="text-xs sm:text-sm text-slate-600">Sessions completed today</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
@@ -657,13 +658,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
                   <TabsContent value="analytics" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                      <Card>
-                        <CardHeader className="pb-3">
-                          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                      <Card className="border-slate-200/50 shadow-md hover:shadow-lg transition-shadow">
+                        <CardHeader className="pb-4 sm:pb-5">
+                          <CardTitle className="flex items-center gap-2.5 text-base sm:text-lg font-bold">
+                            <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                             Productivity Score
                           </CardTitle>
-                          <CardDescription className="text-xs sm:text-sm">Your focus efficiency rating</CardDescription>
+                          <CardDescription className="text-xs sm:text-sm text-slate-600">Your focus efficiency rating</CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="text-center space-y-3 sm:space-y-4">
@@ -693,13 +694,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
                         </CardContent>
                       </Card>
 
-                      <Card>
-                        <CardHeader className="pb-3">
-                          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                            <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                      <Card className="border-slate-200/50 shadow-md hover:shadow-lg transition-shadow">
+                        <CardHeader className="pb-4 sm:pb-5">
+                          <CardTitle className="flex items-center gap-2.5 text-base sm:text-lg font-bold">
+                            <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                             Session Trends
                           </CardTitle>
-                          <CardDescription className="text-xs sm:text-sm">Your weekly performance</CardDescription>
+                          <CardDescription className="text-xs sm:text-sm text-slate-600">Your weekly performance</CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3 sm:space-y-4">
@@ -725,13 +726,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
                   <TabsContent value="calendar" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                      <Card>
-                        <CardHeader className="pb-3">
-                          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                            <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                      <Card className="border-slate-200/50 shadow-md hover:shadow-lg transition-shadow">
+                        <CardHeader className="pb-4 sm:pb-5">
+                          <CardTitle className="flex items-center gap-2.5 text-base sm:text-lg font-bold">
+                            <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                             Activity Calendar
                           </CardTitle>
-                          <CardDescription className="text-xs sm:text-sm">Your focus day history</CardDescription>
+                          <CardDescription className="text-xs sm:text-sm text-slate-600">Your focus day history</CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="flex justify-center">
@@ -751,13 +752,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
                         </CardContent>
                       </Card>
 
-                      <Card>
-                        <CardHeader className="pb-3">
-                          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                            <Star className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                      <Card className="border-slate-200/50 shadow-md hover:shadow-lg transition-shadow">
+                        <CardHeader className="pb-4 sm:pb-5">
+                          <CardTitle className="flex items-center gap-2.5 text-base sm:text-lg font-bold">
+                            <Star className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                             Calendar Stats
                           </CardTitle>
-                          <CardDescription className="text-xs sm:text-sm">Summary of your activity</CardDescription>
+                          <CardDescription className="text-xs sm:text-sm text-slate-600">Summary of your activity</CardDescription>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-4">
@@ -812,13 +813,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
                   </TabsContent>
 
                   <TabsContent value="leaderboard" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                          <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    <Card className="border-slate-200/50 shadow-md hover:shadow-lg transition-shadow">
+                      <CardHeader className="pb-4 sm:pb-5">
+                        <CardTitle className="flex items-center gap-2.5 text-base sm:text-lg font-bold">
+                          <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                           Productivity Leaderboard
                         </CardTitle>
-                        <CardDescription className="text-xs sm:text-sm">Compare your progress with other focused users</CardDescription>
+                        <CardDescription className="text-xs sm:text-sm text-slate-600">Compare your progress with other focused users</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-6">
@@ -943,13 +944,13 @@ const Dashboard: React.FC<DashboardProps> = () => {
                   </TabsContent>
 
                   <TabsContent value="insights" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                          <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    <Card className="border-slate-200/50 shadow-md hover:shadow-lg transition-shadow">
+                      <CardHeader className="pb-4 sm:pb-5">
+                        <CardTitle className="flex items-center gap-2.5 text-base sm:text-lg font-bold">
+                          <Lightbulb className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                           Recent Reflections
                         </CardTitle>
-                        <CardDescription className="text-xs sm:text-sm">Learnings from your focus sessions</CardDescription>
+                        <CardDescription className="text-xs sm:text-sm text-slate-600">Learnings from your focus sessions</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
@@ -980,7 +981,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                                   </span>
                                 </div>
                                 <p className="text-muted-foreground leading-relaxed">
-                                  {reflection.learnings}
+                                  {sanitizeText(reflection.learnings)}
                                 </p>
                               </div>
                             ))
@@ -1004,38 +1005,38 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
           {/* Sidebar - Mobile Optimized */}
           <div className="space-y-6 lg:space-y-8">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base sm:text-lg">Quick Stats</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Your productivity at a glance</CardDescription>
+            <Card className="border-slate-200/50 shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-4 sm:pb-5">
+                <CardTitle className="text-base sm:text-lg font-bold">Quick Stats</CardTitle>
+                <CardDescription className="text-xs sm:text-sm text-slate-600">Your productivity at a glance</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-2 sm:p-3 bg-muted/30 rounded-lg">
-                    <span className="text-xs sm:text-sm font-medium">Avg Sessions/Day</span>
-                    <Badge variant="secondary" className="text-xs">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex justify-between items-center p-2.5 sm:p-3 bg-gradient-to-r from-blue-50 to-blue-50/50 rounded-lg border border-blue-200/30 hover:border-blue-300/50 transition-colors">
+                    <span className="text-xs sm:text-sm font-medium text-slate-700">Avg Sessions/Day</span>
+                    <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 border-blue-200/50 font-semibold">
                       {stats.calendarData.length > 0 
                         ? (sessions.length / stats.calendarData.length).toFixed(1) 
                         : '0'
                       }
                     </Badge>
                   </div>
-                  <div className="flex justify-between items-center p-2 sm:p-3 bg-muted/30 rounded-lg">
-                    <span className="text-xs sm:text-sm font-medium">Best Day</span>
-                    <Badge variant="secondary" className="text-xs">
+                  <div className="flex justify-between items-center p-2.5 sm:p-3 bg-gradient-to-r from-green-50 to-green-50/50 rounded-lg border border-green-200/30 hover:border-green-300/50 transition-colors">
+                    <span className="text-xs sm:text-sm font-medium text-slate-700">Best Day</span>
+                    <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 border-green-200/50 font-semibold">
                       {Math.max(...stats.weeklyPomodoros)} sessions
                     </Badge>
                   </div>
-                  <div className="flex justify-between items-center p-2 sm:p-3 bg-muted/30 rounded-lg">
-                    <span className="text-xs sm:text-sm font-medium">Completion Rate</span>
-                    <Badge variant="secondary" className="text-xs">
+                  <div className="flex justify-between items-center p-2.5 sm:p-3 bg-gradient-to-r from-purple-50 to-purple-50/50 rounded-lg border border-purple-200/30 hover:border-purple-300/50 transition-colors">
+                    <span className="text-xs sm:text-sm font-medium text-slate-700">Completion Rate</span>
+                    <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 border-purple-200/50 font-semibold">
                       {sessions.length > 0 ? Math.round((workSessions.length / sessions.length) * 100) : 0}%
                     </Badge>
                   </div>
                   {currentUserRank > 0 && (
-                    <div className="flex justify-between items-center p-2 sm:p-3 bg-primary/10 rounded-lg border border-primary/20">
-                      <span className="text-xs sm:text-sm font-medium">Leaderboard Rank</span>
-                      <Badge variant="default" className="bg-primary text-xs">
+                    <div className="flex justify-between items-center p-2.5 sm:p-3 bg-gradient-to-r from-amber-50 to-amber-50/50 rounded-lg border-2 border-amber-300/50 hover:border-amber-400/50 transition-colors">
+                      <span className="text-xs sm:text-sm font-medium text-slate-700">Leaderboard Rank</span>
+                      <Badge variant="default" className="text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold border-0">
                         #{currentUserRank}
                       </Badge>
                     </div>
@@ -1044,33 +1045,33 @@ const Dashboard: React.FC<DashboardProps> = () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base sm:text-lg">Session Summary</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Total sessions by type</CardDescription>
+            <Card className="border-slate-200/50 shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-4 sm:pb-5">
+                <CardTitle className="text-base sm:text-lg font-bold">Session Summary</CardTitle>
+                <CardDescription className="text-xs sm:text-sm text-slate-600">Total sessions by type</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 sm:w-3 sm:h-3 bg-primary rounded-full"></div>
-                      <span className="text-xs sm:text-sm">Work Sessions</span>
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-blue-200/30 bg-blue-50/40 hover:bg-blue-50/60 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full shadow-sm"></div>
+                      <span className="text-xs sm:text-sm font-medium text-slate-700">Work Sessions</span>
                     </div>
-                    <span className="font-semibold text-sm sm:text-base">{workSessions.length}</span>
+                    <span className="font-bold text-sm sm:text-base text-blue-600">{workSessions.length}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full"></div>
-                      <span className="text-xs sm:text-sm">Short Breaks</span>
+                  <div className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-green-200/30 bg-green-50/40 hover:bg-green-50/60 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full shadow-sm"></div>
+                      <span className="text-xs sm:text-sm font-medium text-slate-700">Short Breaks</span>
                     </div>
-                    <span className="font-semibold text-sm sm:text-base">{breakSessions.length}</span>
+                    <span className="font-bold text-sm sm:text-base text-green-600">{breakSessions.length}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-xs sm:text-sm">Long Breaks</span>
+                  <div className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-cyan-200/30 bg-cyan-50/40 hover:bg-cyan-50/60 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full shadow-sm"></div>
+                      <span className="text-xs sm:text-sm font-medium text-slate-700">Long Breaks</span>
                     </div>
-                    <span className="font-semibold text-sm sm:text-base">{longBreakSessions.length}</span>
+                    <span className="font-bold text-sm sm:text-base text-cyan-600">{longBreakSessions.length}</span>
                   </div>
                 </div>
               </CardContent>
