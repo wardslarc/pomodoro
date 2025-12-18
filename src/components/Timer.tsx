@@ -645,26 +645,39 @@ const Timer = ({
   const getBackgroundColor = () => {
     switch (sessionType) {
       case "work":
-        return "bg-blue-50 dark:bg-blue-950";
+        return "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900";
       case "break":
-        return "bg-green-50 dark:bg-green-950";
+        return "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900";
       case "longBreak":
-        return "bg-teal-50 dark:bg-teal-950";
+        return "bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950 dark:to-teal-900";
       default:
-        return "bg-background";
+        return "bg-gradient-to-br from-blue-50 to-blue-100";
     }
   };
 
   const getCircleColor = () => {
     switch (sessionType) {
       case "work":
-        return "text-blue-500";
+        return "text-blue-600";
       case "break":
-        return "text-green-500";
+        return "text-green-600";
       case "longBreak":
-        return "text-teal-500";
+        return "text-teal-600";
       default:
-        return "text-blue-500";
+        return "text-blue-600";
+    }
+  };
+
+  const getBorderColor = () => {
+    switch (sessionType) {
+      case "work":
+        return "border-blue-200 dark:border-blue-700";
+      case "break":
+        return "border-green-200 dark:border-green-700";
+      case "longBreak":
+        return "border-teal-200 dark:border-teal-700";
+      default:
+        return "border-blue-200";
     }
   };
 
@@ -674,10 +687,13 @@ const Timer = ({
 
   if (isLoading) {
     return (
-      <div className="w-full max-w-md mx-auto">
-        <Card className="shadow-lg">
-          <CardContent className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      <div className="w-full max-w-2xl mx-auto px-2 sm:px-0">
+        <Card className="shadow-2xl border-0">
+          <CardContent className="flex items-center justify-center h-64 sm:h-80 bg-gradient-to-br from-blue-50 to-cyan-50">
+            <div className="flex flex-col items-center gap-3 sm:gap-4">
+              <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-blue-200 border-t-blue-600"></div>
+              <p className="text-slate-600 font-medium text-sm sm:text-base">Loading timer...</p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -685,26 +701,32 @@ const Timer = ({
   }
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-6">
-      <Card className={`shadow-lg ${getBackgroundColor()}`}>
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">{getSessionLabel()}</CardTitle>
+    <div className="w-full max-w-2xl mx-auto space-y-6 sm:space-y-8 px-2 sm:px-0">
+      <Card className={`shadow-2xl border-0 overflow-hidden ${getBackgroundColor()}`}>
+        <CardHeader className="text-center pb-3 sm:pb-4 pt-6 sm:pt-8">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 flex-wrap">
+            <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${getCircleColor().replace('text-', 'bg-')}`}></div>
+            <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 truncate sm:truncate-none">{getSessionLabel()}</CardTitle>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-600">
+            {isRunning ? '⏱️ Timer is running' : '⏸️ Timer paused'}
+          </p>
         </CardHeader>
 
-        <CardContent className="flex flex-col items-center justify-center space-y-6">
+        <CardContent className="flex flex-col items-center justify-center space-y-6 sm:space-y-8 py-6 sm:py-8">
           <div 
             role="timer" 
             aria-label={`${getSessionLabel()}, ${formatTime(timeLeft)} remaining`}
-            className="relative w-64 h-64 flex items-center justify-center"
+            className="relative w-48 h-48 sm:w-56 sm:h-56 md:w-72 md:h-72 flex items-center justify-center"
           >
-            <svg className="w-full h-full" viewBox="0 0 100 100">
+            <svg className="w-full h-full filter drop-shadow-lg" viewBox="0 0 100 100">
               <circle 
-                className="text-muted-foreground/20" 
+                className="text-slate-200 dark:text-slate-700" 
                 cx="50" 
                 cy="50" 
                 r="45" 
                 fill="none" 
-                strokeWidth="8" 
+                strokeWidth="6" 
                 stroke="currentColor" 
               />
               <circle
@@ -713,7 +735,7 @@ const Timer = ({
                 cy="50"
                 r="45"
                 fill="none"
-                strokeWidth="8"
+                strokeWidth="6"
                 stroke="currentColor"
                 strokeLinecap="round"
                 strokeDasharray={`${2 * Math.PI * 45}`}
@@ -722,64 +744,83 @@ const Timer = ({
                 style={{ transition: "stroke-dashoffset 1s linear" }}
               />
             </svg>
-            <div className="absolute">
-              <span className="text-5xl font-bold">{formatTime(timeLeft)}</span>
+            <div className="absolute text-center">
+              <span className="text-4xl sm:text-5xl md:text-7xl font-bold text-slate-900 dark:text-white tabular-nums">{formatTime(timeLeft)}</span>
             </div>
           </div>
 
-          <div className="text-sm text-muted-foreground text-center space-y-1">
-            <div>Completed sessions: {completedSessions}</div>
-            {sessionHistory.length > 0 && (
-              <div>Total focus time: {totalFocusTime} minutes</div>
-            )}
-            {!user && (
-              <div className="text-xs text-amber-600">
-                Sign in to save sessions to the cloud
+          <div className="text-center space-y-2 sm:space-y-3 w-full px-2 sm:px-4">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+              <div className="p-2 sm:p-3 rounded-lg bg-white/50 backdrop-blur-sm border border-slate-200/50">
+                <div className="text-xs sm:text-sm text-slate-600 font-medium mb-0.5 sm:mb-1">Sessions</div>
+                <div className="text-xl sm:text-2xl font-bold text-slate-900">{completedSessions}</div>
               </div>
-            )}
-            {user && !cloudSyncEnabled && (
-              <div className="text-xs text-amber-600">
-                Cloud sync unavailable - using local storage
+              <div className="p-2 sm:p-3 rounded-lg bg-white/50 backdrop-blur-sm border border-slate-200/50">
+                <div className="text-xs sm:text-sm text-slate-600 font-medium mb-0.5 sm:mb-1">Progress</div>
+                <div className="text-xl sm:text-2xl font-bold text-slate-900">{Math.round(progress)}%</div>
               </div>
-            )}
-            {isSavingSession && (
-              <div className="text-xs text-blue-600">
-                Saving session to cloud...
+              <div className="p-2 sm:p-3 rounded-lg bg-white/50 backdrop-blur-sm border border-slate-200/50">
+                <div className="text-xs sm:text-sm text-slate-600 font-medium mb-0.5 sm:mb-1">Focus Time</div>
+                <div className="text-xl sm:text-2xl font-bold text-slate-900">{totalFocusTime}m</div>
               </div>
-            )}
-            {lastError && (
-              <div className="text-xs text-red-600">
-                Error: {lastError}
-              </div>
-            )}
+            </div>
+
+            <div className="text-xs sm:text-sm text-slate-600 space-y-1 sm:space-y-2 pt-2 sm:pt-3 px-2">
+              {!user && (
+                <p className="text-xs text-amber-600 font-medium">
+                  💡 Sign in to save sessions to the cloud
+                </p>
+              )}
+              {user && !cloudSyncEnabled && (
+                <p className="text-xs text-amber-600 font-medium">
+                  ☁️ Cloud sync unavailable - using local storage
+                </p>
+              )}
+              {isSavingSession && (
+                <p className="text-xs text-blue-600 font-medium">
+                  ✓ Saving session to cloud...
+                </p>
+              )}
+              {lastError && (
+                <p className="text-xs text-red-600 font-medium break-words">
+                  ✗ Error: {lastError}
+                </p>
+              )}
+            </div>
           </div>
         </CardContent>
 
-        <CardFooter className="flex justify-center space-x-4">
+        <CardFooter className="flex justify-center gap-2 sm:gap-3 md:gap-4 pb-6 sm:pb-8 px-2 sm:px-4 flex-wrap">
           <Button 
             variant="outline" 
             size="icon" 
             onClick={resetTimer}
             aria-label="Reset timer"
             disabled={isRunning || isSavingSession}
+            className="h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-200 transition-all duration-300 flex-shrink-0"
           >
-            <RotateCcw className="h-4 w-4" />
+            <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
 
           <Button 
-            variant={isRunning ? "destructive" : "default"} 
-            size="lg" 
             onClick={toggleTimer}
             aria-label={isRunning ? "Pause timer" : "Start timer"}
             disabled={isSavingSession}
+            className={`px-4 sm:px-8 py-2 sm:py-3 rounded-full font-semibold text-base sm:text-lg transition-all duration-300 flex items-center gap-2 shadow-lg whitespace-nowrap ${
+              isRunning 
+                ? 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white' 
+                : 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white'
+            }`}
           >
             {isRunning ? (
               <>
-                <Pause className="mr-2 h-4 w-4" /> Pause
+                <Pause className="h-4 w-4 sm:h-5 sm:w-5" /> 
+                <span className="hidden sm:inline">Pause</span>
               </>
             ) : (
               <>
-                <Play className="mr-2 h-4 w-4" /> Start
+                <Play className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Start</span>
               </>
             )}
           </Button>
@@ -790,55 +831,64 @@ const Timer = ({
             onClick={skipTimer}
             aria-label="Skip to next session"
             disabled={isSavingSession}
+            className="h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-200 transition-all duration-300 flex-shrink-0"
           >
-            <SkipForward className="h-4 w-4" />
+            <SkipForward className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </CardFooter>
       </Card>
 
       {sessionHistory.length > 0 && (
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-4">
-            <h3 className="text-lg font-semibold text-slate-900 mb-3">
-              Session History {user && cloudSyncEnabled ? "(Cloud Synced)" : user ? "(Local Only)" : "(Local Only)"}
+        <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
+          <CardContent className="p-4 sm:p-6">
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-2 flex-wrap">
+              📊 Session History
+              {user && cloudSyncEnabled && (
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Cloud Synced</span>
+              )}
+              {user && !cloudSyncEnabled && (
+                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">Local Only</span>
+              )}
             </h3>
-            <div className="space-y-2 text-sm text-slate-600">
-              <div className="flex justify-between">
-                <span>Work Sessions:</span>
-                <span>{sessionHistory.filter(s => s.sessionType === "work").length}</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+              <div className="p-3 sm:p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-700/30">
+                <div className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-1 sm:mb-2">Work Sessions</div>
+                <div className="text-xl sm:text-2xl font-bold text-blue-600">{sessionHistory.filter(s => s.sessionType === "work").length}</div>
               </div>
-              <div className="flex justify-between">
-                <span>Short Breaks:</span>
-                <span>{sessionHistory.filter(s => s.sessionType === "break").length}</span>
+              <div className="p-3 sm:p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200/50 dark:border-green-700/30">
+                <div className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-1 sm:mb-2">Short Breaks</div>
+                <div className="text-xl sm:text-2xl font-bold text-green-600">{sessionHistory.filter(s => s.sessionType === "break").length}</div>
               </div>
-              <div className="flex justify-between">
-                <span>Long Breaks:</span>
-                <span>{sessionHistory.filter(s => s.sessionType === "longBreak").length}</span>
+              <div className="p-3 sm:p-4 rounded-lg bg-teal-50 dark:bg-teal-950/30 border border-teal-200/50 dark:border-teal-700/30">
+                <div className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-1 sm:mb-2">Long Breaks</div>
+                <div className="text-xl sm:text-2xl font-bold text-teal-600">{sessionHistory.filter(s => s.sessionType === "longBreak").length}</div>
               </div>
-              <div className="flex justify-between font-semibold border-t pt-2">
-                <span>Total Focus Time:</span>
-                <span>{totalFocusTime} minutes</span>
+              <div className="p-3 sm:p-4 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200/50 dark:border-purple-700/30">
+                <div className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-1 sm:mb-2">Total Focus</div>
+                <div className="text-xl sm:text-2xl font-bold text-purple-600">{totalFocusTime}m</div>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      <Card className="bg-white shadow-sm">
-        <CardContent className="p-4">
-          <h3 className="text-lg font-semibold text-slate-900 mb-3">Keyboard Shortcuts</h3>
-          <div className="space-y-2 text-sm text-slate-600">
-            <div className="flex justify-between">
-              <kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Space</kbd>
-              <span>Play/Pause</span>
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
+        <CardContent className="p-4 sm:p-6">
+          <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">
+            ⌨️ Keyboard Shortcuts
+          </h3>
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+              <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Play/Pause</span>
+              <kbd className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white dark:bg-slate-800 rounded font-mono text-xs font-semibold border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white shadow-sm">Space</kbd>
             </div>
-            <div className="flex justify-between">
-              <kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Ctrl + R</kbd>
-              <span>Reset Timer</span>
+            <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+              <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Reset Timer</span>
+              <kbd className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white dark:bg-slate-800 rounded font-mono text-xs font-semibold border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white shadow-sm">Ctrl + R</kbd>
             </div>
-            <div className="flex justify-between">
-              <kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Ctrl + S</kbd>
-              <span>Skip Session</span>
+            <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+              <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Skip Session</span>
+              <kbd className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white dark:bg-slate-800 rounded font-mono text-xs font-semibold border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white shadow-sm">Ctrl + S</kbd>
             </div>
           </div>
         </CardContent>
