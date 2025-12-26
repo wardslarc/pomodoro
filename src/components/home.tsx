@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Settings as SettingsIcon, BarChart3, LogOut, Lock, Shield, FileText, Mail, Heart, Menu, X, Users } from "lucide-react";
+import { Settings as SettingsIcon, BarChart3, LogOut, Lock, Shield, FileText, Mail, Heart, Menu, X, Users, BookOpen } from "lucide-react";
 import Timer from "./Timer";
 import Dashboard from "./Dashboard";
 import Settings from "./Settings";
