@@ -137,7 +137,7 @@ const Home = () => {
       case "terms":
         return "max-w-4xl w-full max-h-[80vh] mx-4";
       case "reflection":
-        return "max-w-2xl w-full max-h-[80vh] mx-4";
+        return "max-w-2xl w-full h-[80vh] max-h-[80vh] mx-4";
       case "contact":
         return "max-w-2xl w-full mx-4";
       case "alert":
@@ -707,7 +707,7 @@ const Home = () => {
 
 
       <Dialog open={openModal !== null} onOpenChange={handleModalOpenChange}>
-        <DialogContent className={`${getModalSize(openModal)} max-h-[90vh] overflow-hidden ${settings.darkMode ? "bg-slate-800 text-white" : "bg-white text-slate-900 shadow-2xl"}`}>
+        <DialogContent className={`${getModalSize(openModal)} p-0 overflow-hidden flex flex-col ${settings.darkMode ? "bg-slate-800 text-white" : "bg-white text-slate-900 shadow-2xl"}`}>
           {renderModalContent()}
         </DialogContent>
       </Dialog>
