@@ -1,0 +1,33 @@
+{
+  "name": "Reflective Pomodoro - AI-Powered Productivity Timer",
+  "short_name": "Reflective Pomodoro",
+  "description": "Advanced Pomodoro timer with AI-powered session reflections, community learning, and productivity analytics",
+  "start_url": "https://www.reflectivepomodoro.com/",
+  "scope": "https://www.reflectivepomodoro.com/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1e1b4b",
+  "theme_color": "#1e1b4b",
+  "icons": [
+    {
+      "src": "/pomodoro.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pomodoro.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["productivity", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "/pomodoro.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    }
+  ]
+}
