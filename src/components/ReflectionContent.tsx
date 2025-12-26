@@ -651,7 +651,10 @@ const ReflectionContent: React.FC<ReflectionContentProps> = ({
             placeholder="• I discovered that...&#10;• The challenge was...&#10;• Next time I'll try..."
             value={learnings}
             onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              handleKeyDown(e);
+            }}
             className="w-full min-h-[180px] sm:min-h-[220px] p-4 border-2 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl text-sm resize-none font-normal transition-all"
             maxLength={2000}
             disabled={isSaving}

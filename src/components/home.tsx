@@ -707,7 +707,7 @@ const Home = () => {
 
 
       <Dialog open={openModal !== null} onOpenChange={handleModalOpenChange}>
-        <DialogContent className={`${getModalSize(openModal)} max-h-[90vh] overflow-hidden ${settings.darkMode ? "bg-slate-800 text-white" : "bg-white text-slate-900 shadow-2xl"}`}>
+        <DialogContent className={`${getModalSize(openModal)} max-h-[90vh] p-0 overflow-hidden flex flex-col ${settings.darkMode ? "bg-slate-800 text-white" : "bg-white text-slate-900 shadow-2xl"}`}>
           {renderModalContent()}
         </DialogContent>
       </Dialog>
