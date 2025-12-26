@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Settings as SettingsIcon, BarChart3, LogOut, Lock, Shield, FileText, Mail, Heart, Menu, X, Users } from "lucide-react";
@@ -672,6 +672,35 @@ const Home = () => {
         <span className="font-semibold"> why</span> you lose focus, and <span className="font-semibold"> what</span> makes you thrive.
       </p>
     </div>
+
+    <div className="mt-16 sm:mt-24">
+      <h3 className="text-2xl sm:text-3xl font-bold mb-8 text-slate-900 text-center">Why Mindful Productivity?</h3>
+      <div className="grid md:grid-cols-3 gap-8">
+        <div className="space-y-4">
+          <h4 className="text-xl font-semibold text-blue-600">Combat Cognitive Load</h4>
+          <p className="text-slate-600 leading-relaxed">
+            Constant switching between tasks drains your mental energy. By using timed intervals, you protect your focus and reduce the stress of a never-ending to-do list.
+          </p>
+        </div>
+        <div className="space-y-4">
+          <h4 className="text-xl font-semibold text-purple-600">Identify Focus Patterns</h4>
+          <p className="text-slate-600 leading-relaxed">
+            Not all hours are created equal. Reflection helps you discover your "Peak Performance" times, allowing you to schedule your most difficult work when you're most alert.
+          </p>
+        </div>
+        <div className="space-y-4">
+          <h4 className="text-xl font-semibold text-cyan-600">Build Sustainable Habits</h4>
+          <p className="text-slate-600 leading-relaxed">
+            Productivity isn't about working more; it's about working smarter. Our system encourages breaks that actually recharge you, preventing burnout and maintaining long-term motivation.
+          </p>
+        </div>
+      </div>
+      <div className="text-center mt-12">
+        <Link to="/guides" className="inline-flex items-center text-blue-600 font-bold hover:underline">
+          Read our full productivity guides <BookOpen className="ml-2 h-5 w-5" />
+        </Link>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -707,6 +736,18 @@ const Home = () => {
                 </button>
                 <button onClick={() => handleProtectedFeature("settings")} className="text-slate-400 hover:text-blue-400 transition-colors text-xs sm:text-sm font-medium text-left">
                   Settings
+                </button>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="text-white font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Resources</h4>
+              <div className="flex flex-col gap-2 sm:gap-3">
+                <Link to="/guides" className="text-slate-400 hover:text-blue-400 transition-colors text-xs sm:text-sm font-medium text-left">
+                  Productivity Guides
+                </Link>
+                <button onClick={() => handleProtectedFeature("social")} className="text-slate-400 hover:text-blue-400 transition-colors text-xs sm:text-sm font-medium text-left">
+                  Community Feed
                 </button>
               </div>
             </div>
