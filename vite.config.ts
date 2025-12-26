@@ -40,7 +40,7 @@ export default defineConfig({
       'X-Frame-Options': 'DENY',
       'X-XSS-Protection': '1; mode=block',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.reflectivepomodoro.com ws: wss:; font-src 'self' https://fonts.gstatic.com; frame-src 'self'; base-uri 'self'; form-action 'self'",
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' https://pagead2.googlesyndication.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.reflectivepomodoro.com https://pomodoro-api-pi.vercel.app ws: wss:; font-src 'self' https://fonts.gstatic.com; frame-src 'self'; base-uri 'self'; form-action 'self'",
       'Cache-Control': 'public, max-age=3600',
     },
     middlewareMode: false,
