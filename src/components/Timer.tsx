@@ -581,6 +581,16 @@ const Timer = ({
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input, textarea, or contenteditable element
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" || 
+        target.tagName === "TEXTAREA" || 
+        target.isContentEditable
+      ) {
+        return;
+      }
+
       if (e.code === "Space") {
         e.preventDefault();
         toggleTimer();
@@ -595,7 +605,7 @@ const Timer = ({
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, []);
+  }, [isRunning, timeLeft, sessionType]);
 
   const toggleTimer = () => {
     if (!isRunning) {
