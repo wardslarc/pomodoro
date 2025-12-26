@@ -61,6 +61,7 @@ const ReflectionContent: React.FC<ReflectionContentProps> = ({
         handleSubmit(e as any);
       }
     }
+    // Allow normal text input without propagation issues
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -636,7 +637,7 @@ const ReflectionContent: React.FC<ReflectionContentProps> = ({
           )}
 
           {/* Textarea - Prominent */}
-          <div className="space-y-2">
+          <form onSubmit={handleSubmit} className="space-y-2">
             <div className="flex justify-between items-center">
               <Label htmlFor="learnings" className="font-medium text-slate-900">
                 Your reflection
@@ -651,10 +652,7 @@ const ReflectionContent: React.FC<ReflectionContentProps> = ({
               placeholder="• I discovered that...&#10;• The challenge was...&#10;• Next time I'll try..."
               value={learnings}
               onChange={handleInputChange}
-              onKeyDown={(e) => {
-                e.stopPropagation();
-                handleKeyDown(e);
-              }}
+              onKeyDown={handleKeyDown}
               className="w-full min-h-[180px] sm:min-h-[220px] p-4 border-2 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl text-sm resize-none font-normal transition-all"
               maxLength={2000}
               disabled={isSaving}
@@ -663,7 +661,7 @@ const ReflectionContent: React.FC<ReflectionContentProps> = ({
               <span>💡 Tip: Press Ctrl+Enter to save</span>
               <span>{2000 - learnings.length} remaining</span>
             </div>
-          </div>
+          </form>
 
           {/* Success Message */}
           {saveSuccess && (

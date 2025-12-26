@@ -1,0 +1,22 @@
+# Allow search engine robots to crawl the site
+User-agent: *
+Allow: /
+Disallow: /private/
+Disallow: /*.json$
+Disallow: /admin/
+Disallow: /api/
+
+# Specify sitemap location
+Sitemap: https://www.reflectivepomodoro.com/sitemap.xml
+
+# Crawl delay (in seconds) to prevent server overload
+Crawl-delay: 1
+
+# Specific rules for major search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
