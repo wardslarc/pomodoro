@@ -128,7 +128,7 @@ const ReflectionContent: React.FC<ReflectionContentProps> = ({
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/social/share`, {
+      const response = await fetch(`${API_BASE_URL}/api/social/posts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
