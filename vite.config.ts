@@ -8,7 +8,17 @@ export default defineConfig({
   optimizeDeps: {
     entries: ["src/main.tsx", "src/tempobook/**/*"],
   },
-  plugins: [react(), tempo()],
+  plugins: [
+    react(),
+    tempo(),
+    {
+      name: 'configure-xml-mime',
+      configResolved(config) {},
+      transform(code, id) {
+        return null;
+      },
+    },
+  ],
   resolve: {
     preserveSymlinks: true,
     alias: {
@@ -32,6 +42,12 @@ export default defineConfig({
       'Referrer-Policy': 'strict-origin-when-cross-origin',
       'Content-Security-Policy': "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.reflectivepomodoro.com ws: wss:; font-src 'self' https://fonts.gstatic.com; frame-src 'self'; base-uri 'self'; form-action 'self'",
       'Cache-Control': 'public, max-age=3600',
+    },
+    middlewareMode: false,
+  },
+  preview: {
+    headers: {
+      'Content-Type': 'application/xml; charset=utf-8',
     },
   },
 });

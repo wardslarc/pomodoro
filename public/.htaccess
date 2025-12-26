@@ -1,0 +1,19 @@
+# Apache configuration for proper MIME types
+<IfModule mod_mime.c>
+  AddType application/xml .xml
+  AddType text/plain .txt
+  AddEncoding gzip .gz
+</IfModule>
+
+# Enable compression
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml application/xml
+</IfModule>
+
+# Set proper caching headers
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 month"
+  ExpiresByType application/xml "access plus 1 week"
+  ExpiresByType text/plain "access plus 1 week"
+</IfModule>
