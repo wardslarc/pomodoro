@@ -15,23 +15,8 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-build: {
-  outDir: "build", // ✅ change from 'dist' to 'build'
-},
-export default defineConfig({
-  base: process.env.NODE_ENV === "development" ? "/" : process.env.VITE_BASE_PATH || "/",
-  optimizeDeps: {
-    entries: ["src/main.tsx", "src/tempobook/**/*"],
-  },
-  plugins: [react(), tempo()],
-  resolve: {
-    preserveSymlinks: true,
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
   build: {
-    outDir: "build", // ✅ change from 'dist' to 'build'
+    outDir: "build",
   },
   server: {
     allowedHosts: true,
