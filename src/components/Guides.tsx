@@ -22,6 +22,9 @@ const Guides = () => {
         3. Work on the task until the timer rings.
         4. Take a short break (5 minutes).
         5. Every four pomodoros, take a longer break (15-30 minutes).
+        
+        ### Why it works:
+        The structured breaks prevent burnout and maintain consistent energy levels throughout your workday. The timer creates urgency, helping you eliminate perfectionism and focus on progress over perfection.
       `
     },
     {
@@ -35,6 +38,12 @@ const Guides = () => {
         Our AI-powered reflection system helps you categorize your insights and identify patterns in your productivity. 
         Are you more focused in the morning? Do certain tasks always lead to distractions? 
         Reflective Pomodoro helps you answer these questions.
+        
+        ### Advanced Reflection Techniques:
+        - Document not just what you did, but why you did it and how you felt.
+        - Identify energy dips and energy peaks throughout your day.
+        - Connect your reflections to long-term goals and growth areas.
+        - Use AI insights to adapt your schedule for maximum effectiveness.
       `
     },
     {
@@ -51,6 +60,51 @@ const Guides = () => {
         - Use noise-canceling headphones or white noise.
         - Break large projects into tiny, actionable steps.
         - Reward yourself after completing a session.
+      `
+    },
+    {
+      title: "Mindfulness and Deep Focus",
+      description: "Harness mindfulness practices to enhance concentration and reduce stress.",
+      icon: <Target className="h-6 w-6 text-teal-600" />,
+      content: `
+        Mindfulness is the practice of being fully present in the moment without judgment. When combined with the Pomodoro Technique, 
+        it transforms your work sessions into opportunities for both productivity and mental well-being.
+        
+        ### Mindfulness practices during Pomodoro sessions:
+        1. Start each session with 2 minutes of deep breathing to center yourself.
+        2. Focus on one task completely, noticing when your mind wanders and gently returning focus.
+        3. Observe your thoughts without judgment during work.
+        4. Use break time for body scans or brief meditation (3-5 minutes).
+        5. Practice gratitude by noting what you accomplished during the session.
+        
+        ### Benefits of mindful pomodoros:
+        - Reduced anxiety and stress levels
+        - Better decision-making and problem-solving
+        - Improved attention span and memory retention
+        - Enhanced creativity through mental clarity
+        - Greater overall well-being and job satisfaction
+      `
+    },
+    {
+      title: "Building Sustainable Productivity Habits",
+      description: "Create long-term habits that stick and support your goals.",
+      icon: <BookOpen className="h-6 w-6 text-rose-600" />,
+      content: `
+        True productivity isn't about burning yourself out; it's about building sustainable systems that support your goals without compromising your well-being.
+        
+        ### The habit-building framework:
+        1. Start small: Begin with just 2-3 pomodoros per day, not 10+.
+        2. Stack habits: Attach your Pomodoro sessions to existing daily habits.
+        3. Track progress: Use our app to monitor your consistency and patterns over time.
+        4. Adjust regularly: Use AI reflection insights to fine-tune your approach weekly.
+        5. Celebrate wins: Acknowledge improvements, no matter how small.
+        
+        ### Creating your ideal routine:
+        - Identify your peak focus hours and schedule important work then.
+        - Set realistic daily targets based on your energy levels and workload.
+        - Build in buffer time between sessions for transitions.
+        - Plan your break activities in advance (walk, stretch, hydrate, meditate).
+        - Review your weekly reflection insights every Sunday for continuous optimization.
       `
     }
   ];
