@@ -193,20 +193,33 @@ const Home = () => {
       case "loginPrompt":
         return (
           <>
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold">Great work! 🎉</DialogTitle>
-              <DialogDescription>
-                You completed a Pomodoro session! Sign in to save reflections and track progress.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="flex flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={() => setOpenModal(null)} className="flex-1">
-                Continue Without Account
-              </Button>
-              <Button onClick={handleNavigateToAuth} className="flex-1 bg-blue-600 hover:bg-blue-700">
-                Sign In
-              </Button>
-            </DialogFooter>
+            <div className="px-8 py-12 text-center border-b border-slate-200 dark:border-slate-700">
+              <div className="mb-4 text-5xl">🎉</div>
+              <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">Session Complete!</h2>
+              <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-sm mx-auto">
+                You've just completed a productive Pomodoro session. Sign in now to save your reflection and track your progress over time.
+              </p>
+            </div>
+            <div className="px-8 py-8">
+              <div className="space-y-3">
+                <Button 
+                  onClick={handleNavigateToAuth} 
+                  className="w-full h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  Sign In to Save Progress
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setOpenModal(null)} 
+                  className="w-full h-11 font-semibold rounded-lg"
+                >
+                  Continue Without Saving
+                </Button>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400 text-center mt-6">
+                Signing in helps you track your productivity patterns and build better habits.
+              </p>
+            </div>
           </>
         );
       
@@ -307,42 +320,75 @@ const Home = () => {
         };
         return (
           <>
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-                <span>{iconMap[alertConfig.type || "info"]}</span>
+            <div className="px-8 py-10 border-b border-slate-200 dark:border-slate-700 text-center">
+              <div className="text-5xl mb-4">{iconMap[alertConfig.type || "info"]}</div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
                 {alertConfig.title}
-              </DialogTitle>
-              <DialogDescription className="text-base">
+              </h2>
+              <p className="text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-sm mx-auto">
                 {alertConfig.description}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-4">
-              <Button variant="outline" onClick={() => setOpenModal(null)} className="flex-1">
-                Close
-              </Button>
-              {alertConfig.actionLabel && (
+              </p>
+            </div>
+            <div className="px-8 py-8">
+              <div className="space-y-3">
+                {alertConfig.actionLabel && (
+                  <Button 
+                    onClick={() => {
+                      alertConfig.onAction?.();
+                      setOpenModal(null);
+                    }}
+                    className={`w-full h-11 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg ${buttonColorMap[alertConfig.type || "info"]}`}
+                  >
+                    {alertConfig.actionLabel}
+                  </Button>
+                )}
                 <Button 
-                  onClick={() => {
-                    alertConfig.onAction?.();
-                    setOpenModal(null);
-                  }}
-                  className={`flex-1 text-white ${buttonColorMap[alertConfig.type || "info"]}`}
+                  variant="outline" 
+                  onClick={() => setOpenModal(null)} 
+                  className="w-full h-11 font-semibold rounded-lg"
                 >
-                  {alertConfig.actionLabel}
+                  {alertConfig.actionLabel ? "Cancel" : "Close"}
                 </Button>
-              )}
-            </DialogFooter>
+              </div>
+            </div>
           </>
         );
       
       case "privacy":
-        return <PrivacyPolicy />;
+        return (
+          <>
+            <DialogHeader className="px-6 py-6 border-b border-slate-200 dark:border-slate-700">
+              <DialogTitle className="text-2xl font-bold">Privacy Policy</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-auto px-6 py-6">
+              <PrivacyPolicy />
+            </div>
+          </>
+        );
       
       case "terms":
-        return <TermsAndConditions />;
+        return (
+          <>
+            <DialogHeader className="px-6 py-6 border-b border-slate-200 dark:border-slate-700">
+              <DialogTitle className="text-2xl font-bold">Terms and Conditions</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-auto px-6 py-6">
+              <TermsAndConditions />
+            </div>
+          </>
+        );
       
       case "contact":
-        return <ContactContent />;
+        return (
+          <>
+            <DialogHeader className="px-6 py-6 border-b border-slate-200 dark:border-slate-700">
+              <DialogTitle className="text-2xl font-bold">Contact Us</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-auto px-6 py-6">
+              <ContactContent />
+            </div>
+          </>
+        );
       
       default:
         return null;
@@ -388,6 +434,12 @@ const Home = () => {
                     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full"></div>
                   )}
                 </button>
+                <Link 
+                  to="/blog"
+                  className={`text-sm lg:text-base font-semibold transition-all duration-300 relative whitespace-nowrap text-slate-600 hover:text-blue-600`}
+                >
+                  Blog
+                </Link>
                 <button 
                   onClick={() => handleProtectedFeature("social")}
                   className={`text-sm lg:text-base font-semibold transition-all duration-300 relative whitespace-nowrap ${
@@ -508,6 +560,13 @@ const Home = () => {
             >
               Home
             </button>
+            <Link 
+              to="/blog"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`text-left text-base sm:text-lg font-semibold transition-all duration-300 py-3 px-3 sm:px-4 rounded-lg block text-slate-600 hover:bg-slate-100 ${settings.darkMode ? "hover:bg-slate-700" : ""}`}
+            >
+              Blog
+            </Link>
             <button 
               onClick={() => handleProtectedFeature("social")}
               className={`text-left text-base sm:text-lg font-semibold transition-all duration-300 py-3 px-3 sm:px-4 rounded-lg ${
@@ -538,6 +597,13 @@ const Home = () => {
             >
               Settings
             </button>
+            <Link 
+              to="/blog"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`text-left text-base sm:text-lg font-semibold transition-all duration-300 py-3 px-3 sm:px-4 rounded-lg block text-slate-600 hover:bg-slate-100 ${settings.darkMode ? "hover:bg-slate-700" : ""}`}
+            >
+              Blog
+            </Link>
             
             <div className={`border-t my-3 sm:my-4 ${settings.darkMode ? "border-slate-700" : "border-slate-200"}`}></div>
             {user ? (
@@ -745,6 +811,9 @@ const Home = () => {
               <div className="flex flex-col gap-2 sm:gap-3">
                 <Link to="/guides" className="text-slate-400 hover:text-blue-400 transition-colors text-xs sm:text-sm font-medium text-left">
                   Productivity Guides
+                </Link>
+                <Link to="/blog" className="text-slate-400 hover:text-blue-400 transition-colors text-xs sm:text-sm font-medium text-left">
+                  Blog
                 </Link>
                 <button onClick={() => handleProtectedFeature("social")} className="text-slate-400 hover:text-blue-400 transition-colors text-xs sm:text-sm font-medium text-left">
                   Community Feed

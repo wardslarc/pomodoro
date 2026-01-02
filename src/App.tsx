@@ -5,6 +5,7 @@ import { SettingsProvider } from "./contexts/SettingsContext";
 import Home from "./components/home";
 import Auth from "./components/Auth";
 import Guides from "./components/Guides";
+import Blog from "./components/Blog";
 
 function AppContent() {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/guides" element={<Guides />} />
+        <Route path="/blog" element={<Blog />} />
         <Route path="/auth" element={
           !user ? <Auth /> : <Navigate to="/" replace />
         } />
