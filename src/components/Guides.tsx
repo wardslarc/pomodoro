@@ -106,6 +106,80 @@ const Guides = () => {
         - Plan your break activities in advance (walk, stretch, hydrate, meditate).
         - Review your weekly reflection insights every Sunday for continuous optimization.
       `
+    },
+    {
+      title: "Dr. K's Mindfulness & Meditation Techniques",
+      description: "Science-backed meditation practices inspired by Dr. Alok Kanojia (Dr. K) from Healthygamer.",
+      icon: <Brain className="h-6 w-6 text-indigo-600" />,
+      content: `
+        The developer of this application is a big fan of Dr. Alok Kanojia, also known as Dr. K, from Healthygamer. 
+        His evidence-based approach to mindfulness and meditation has profoundly influenced how we integrate mental health 
+        with productivity in the Reflective Pomodoro system.
+        
+        ### Dr. K's Core Mindfulness Philosophy:
+        Dr. K emphasizes that meditation isn't about clearing your mind or achieving a special state. 
+        Instead, it's about developing awareness of your mental patterns and building the capacity to observe your thoughts without judgment. 
+        This simple shift transforms how you approach work, stress, and personal growth.
+        
+        ### Essential Dr. K-Inspired Meditation Techniques for Pomodoro:
+        
+        **1. The 2-Minute Attention Scan**
+        Before starting a pomodoro session, spend 2 minutes observing your current mental state:
+        - What's your energy level? (1-10)
+        - What emotions are present?
+        - What's demanding your attention right now?
+        - Simply observe without trying to change anything.
+        
+        This practice, inspired by Dr. K's approach, helps you understand your baseline and increases self-awareness.
+        
+        **2. The Breath Anchor Technique**
+        During your pomodoro, when your mind wanders (and it will), use your breath as an anchor:
+        - Notice you've wandered (that's the win, not the distraction).
+        - Return your attention to your breath for 3-5 cycles.
+        - Return to your task with renewed focus.
+        
+        Dr. K emphasizes that noticing you've wandered is actually where the meditation happens. The goal isn't to have no thoughts; 
+        it's to notice when you've gotten lost and return to the present.
+        
+        **3. The Compassionate Break**
+        During your 5-minute break, practice Dr. K's compassionate awareness:
+        - Don't scroll or distract yourself.
+        - Sit with yourself and observe your experience.
+        - Notice any urges to escape boredom or discomfort.
+        - Practice self-compassion: "It's okay that I feel this way. This is part of being human."
+        
+        This builds emotional resilience and reduces dependency on constant stimulation.
+        
+        **4. The Emotion-Based Pomodoro Selection**
+        Dr. K teaches that our emotional state significantly impacts our capacity for focus. Use this technique:
+        - If you're anxious: Start with a physical warm-up before your pomodoro.
+        - If you're depressed/low-energy: Use accountability or work with someone else.
+        - If you're angry: Do a 10-minute walk first to metabolize the emotion.
+        - If you're calm and focused: Tackle your hardest task.
+        
+        Matching your task difficulty to your emotional state creates sustainable productivity.
+        
+        **5. The Insight Journal Practice**
+        After your pomodoro, Dr. K-inspired reflection asks:
+        - What patterns did you notice in your mind during work?
+        - When did you get distracted? What triggered it?
+        - How did your emotional state affect your focus?
+        - What's one small insight about yourself today?
+        
+        Over time, these observations create powerful self-knowledge and guide your productivity optimization.
+        
+        ### Dr. K's Core Insight for Productivity:
+        "The goal isn't to become a productivity robot. The goal is to understand yourself deeply enough that you can work with your nature instead of against it."
+        
+        Your mind will wander. You'll feel resistant sometimes. You'll have low-energy days. That's not failure—that's data. 
+        By observing these patterns with curiosity instead of judgment, you develop true mastery over your attention and well-being.
+        
+        ### Building Your Practice:
+        Start with just one technique from Dr. K's framework. Practice it for a week. Notice what shifts. 
+        Then gradually integrate more practices. Dr. K emphasizes consistency over intensity—a short, genuine meditation practice beats a long, forced one.
+        
+        For more on Dr. K's work, visit Healthygamer.gg and his YouTube channel where he combines gaming psychology, neuroscience, and meditation.
+      `
     }
   ];
 
