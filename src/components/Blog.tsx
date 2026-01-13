@@ -1654,6 +1654,213 @@ const Blog = () => {
         
         Your big goal doesn't feel impossible anymore. It feels like this: one pomodoro at a time.
       `
+    },
+    {
+      id: "10",
+      title: "Energy Management: More Important Than Time Management",
+      author: "Amanda Foster",
+      date: "January 12, 2026",
+      category: "Wellness",
+      excerpt: "Learn how managing your energy levels is the real secret to sustainable productivity, not just managing your time.",
+      readTime: "9 min read",
+      content: `
+        We obsess over time management, but time is distributed equally—everyone gets 24 hours. What differs dramatically is energy. 
+        Energy is the true resource that determines how much you can accomplish.
+        
+        ### The Energy Spectrum
+        Energy isn't binary. You're not just either tired or energetic. Throughout the day, you fluctuate across a spectrum of energy states. 
+        Understanding your personal energy patterns is the first step to optimization.
+        
+        ### Types of Energy
+        
+        **Physical Energy**: Sleep quality, nutrition, exercise, and rest determine this. It's foundational.
+        
+        **Mental Energy**: Your capacity for focus, decision-making, and problem-solving. This depletes with cognitive work and replenishes with rest.
+        
+        **Emotional Energy**: Your capacity for patience, empathy, and emotional regulation. Stress and conflict deplete this; positive relationships and accomplishments restore it.
+        
+        **Spiritual Energy**: Your sense of purpose and alignment with your values. This is often neglected but crucial.
+        
+        ### Your Energy Architecture
+        High performers don't just work hard—they strategically allocate energy:
+        
+        - Most demanding work when mental energy is highest (usually morning)
+        - Collaborative work when emotional energy is high
+        - Administrative work during energy dips
+        - Recovery activities at the end of the day
+        
+        This isn't laziness; it's strategy. You get more output by doing the right thing at the right energy level.
+        
+        ### The Ultradian Rhythm Revisited
+        Remember those 90-120 minute cycles? They're not arbitrary. Within those cycles, your energy naturally peaks and valleys. 
+        Working with these rhythms instead of against them multiplies your effectiveness.
+        
+        ### Energy Thieves
+        Some activities disproportionately drain energy relative to their importance:
+        
+        - Multitasking and context switching
+        - Unstructured time (should you check email? respond to messages?)
+        - Unclear priorities
+        - Toxic relationships
+        - Misaligned work
+        
+        Addressing energy thieves is more impactful than working longer hours.
+        
+        ### Energy Builders
+        Conversely, some activities restore disproportionate amounts of energy:
+        
+        - Clear progress on meaningful work
+        - Time in nature
+        - Quality relationships
+        - Physical movement and exercise
+        - Adequate sleep
+        - Work aligned with your strengths
+        
+        ### Practical Energy Management
+        Start tracking not just what you do, but how energized you feel before and after activities. 
+        Over two weeks, patterns will emerge. Double down on energy-building activities and minimize or batch energy-draining ones.
+        
+        ### The Productivity Reframe
+        You don't accomplish more by working longer hours at depleted energy levels. You accomplish more by working intelligently at high energy levels. 
+        This is why rest, recovery, and strategic scheduling matter as much as discipline and focus.
+      `
+    },
+    {
+      id: "11",
+      title: "The Art of Saying No: Protecting Your Focus",
+      author: "Michael Harrison",
+      date: "January 11, 2026",
+      category: "Productivity",
+      excerpt: "Master the skill of declining requests so you can focus on what truly matters without guilt.",
+      readTime: "7 min read",
+      content: `
+        Every yes to something is a no to something else. Yet most people struggle to decline requests, leading to overcommitment and compromised focus.
+        
+        ### Why We Say Yes When We Mean No
+        
+        **Social Conditioning**: We're taught that being helpful and accommodating is good. Saying no feels selfish or unfriendly.
+        
+        **Fear of Disappointing**: We worry about what others will think if we decline.
+        
+        **Immediate vs. Long-term**: The request feels urgent now, but the real costs emerge later.
+        
+        **Scarcity Mindset**: We fear opportunities will disappear if we say no now.
+        
+        ### The Cost of Chronic Yes
+        Each yes might seem harmless, but accumulated yeses create:
+        
+        - Overcommitment and overwhelm
+        - Inability to do quality work on anything
+        - Resentment (you're doing things you don't want to do)
+        - Compromised focus on your real priorities
+        - Exhaustion and eventual burnout
+        
+        ### Strategic Yes and No
+        The key is being intentional about what you commit to:
+        
+        **Evaluate Against Your Priorities**: Before saying yes, consider: Does this align with my current priorities and goals?
+        
+        **Consider Your Energy**: Not just "can I do this?" but "at what cost to my other commitments?"
+        
+        **Distinguish Urgent from Important**: Many requests feel urgent but aren't important. Urgency is not a reason to say yes.
+        
+        **Think Long-term**: How will this commitment affect me in 3 months, a year?
+        
+        ### How to Decline Gracefully
+        
+        **The Honest No**: "I appreciate you thinking of me, but I'm not able to take this on right now."
+        
+        **The Alternative**: "I can't do this, but here's someone who might be great..."
+        
+        **The Conditional Yes**: "I can do this, but only if we adjust X" (often they realize they don't need it under different conditions).
+        
+        **The Delayed Decision**: "Let me think about my capacity and get back to you by Friday." This prevents reactive decisions.
+        
+        ### The Boundary Principle
+        Healthy boundaries aren't walls; they're conditions. "I'm available for meetings between 2-4 PM" or "I focus on my own projects in the mornings." 
+        Clear boundaries prevent countless requests before they happen.
+        
+        ### Overcoming Guilt
+        Remember: Saying no to requests that don't align with your priorities is saying yes to your actual goals and well-being. 
+        The guilt usually fades in hours, while the relief of protected focus lasts.
+      `
+    },
+    {
+      id: "12",
+      title: "Creating Your Ideal Productivity Ecosystem",
+      author: "Dr. Rachel Woods",
+      date: "January 10, 2026",
+      category: "Deep Dive",
+      excerpt: "Design a complete productivity system that combines the right tools, habits, and environment for your unique style.",
+      readTime: "12 min read",
+      content: `
+        Productivity isn't about finding the one perfect tool or technique. It's about creating an ecosystem that supports your work across 
+        multiple dimensions: time management, task management, reflection, goal tracking, and well-being.
+        
+        ### The Four Pillars of a Productivity Ecosystem
+        
+        **The Timer (Time Structure)**: The Pomodoro Technique or similar time-boxing method creates structure. This prevents endless work on trivial tasks 
+        and ensures regular breaks.
+        
+        **The Task System (Work Organization)**: Whether it's a sophisticated tool like Todoist or a simple notebook, you need a system 
+        for capturing, organizing, and prioritizing work. Without this, you're constantly deciding what to do next, which wastes cognitive energy.
+        
+        **The Reflection Practice (Learning and Adjustment)**: Productivity isn't static. Regular reflection (daily, weekly, monthly) 
+        helps you understand what works, what doesn't, and how to improve.
+        
+        **The Environment (Physical and Digital)**: Your physical workspace and digital environment either support or undermine focus. 
+        Distractions embedded in your environment create constant resistance.
+        
+        ### Integrating the Pillars
+        The magic happens when these pillars work together:
+        
+        1. You sit down to work in a clean, distraction-free environment
+        2. Your timer starts a focused work block
+        3. Your task system shows exactly what to work on
+        4. You complete focused work
+        5. During breaks, you reflect: What went well? What was hard?
+        6. Weekly, you review the bigger picture
+        7. Monthly, you adjust your system based on what you've learned
+        
+        ### Tools Are Secondary
+        Here's the truth many productivity bloggers won't tell you: the specific tools matter far less than the consistency and intentionality 
+        with which you use them.
+        
+        A person with a notebook, a timer, and genuine reflection habits will outproduce someone with fancy tools they don't use consistently.
+        
+        ### Personalizing Your Ecosystem
+        The best system is the one you'll actually use. Consider:
+        
+        - **Do you prefer analog or digital?**: Some people focus better with paper; others prefer apps. There's no right answer.
+        - **How much structure do you need?**: Some thrive with detailed systems; others feel constrained.
+        - **What's your learning style?**: Do you need to write reflections, speak them, or think through them?
+        - **What's your environment?**: Open office, home, coffee shop? Each has different requirements.
+        
+        ### Common Ecosystem Mistakes
+        
+        **Tool Proliferation**: Using 10 different apps instead of choosing 3-4 that integrate well. This creates management overhead.
+        
+        **Skipping Reflection**: Using a timer and task system but never reflecting. This prevents learning and improvement.
+        
+        **Ignoring Environment**: Having a solid system but working in a distracting environment. The environment will always win.
+        
+        **Perfectionism**: Waiting for the perfect system before starting, or constantly tweaking instead of executing.
+        
+        ### Building Your Ideal Ecosystem
+        
+        Start with the fundamentals:
+        1. A time-boxing method (Pomodoro works great)
+        2. A simple task system (pen and paper is fine)
+        3. A 5-minute daily reflection (write three wins and one learning)
+        4. A weekly review (30 minutes Sunday evening)
+        5. A clean, distraction-free workspace
+        
+        Use these for a month. Then add or adjust based on what's not working. Resist the urge to optimize prematurely—let your real needs emerge.
+        
+        ### The Ultimate Goal
+        Your productivity ecosystem should eventually become invisible. You don't think about it; you just work effectively. 
+        That's when you know you've built something that truly fits you.
+      `
     }
   ];
 
